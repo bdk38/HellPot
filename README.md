@@ -1,3 +1,7 @@
+> **Note**: This is a community-maintained fork of HellPot. The original author, [yunginnanet](https://github.com/yunginnanet), has passed away. This fork exists to continue maintaining and supporting this project for the community. All credit for the original creation and design goes to yunginnanet. The original repository can be found at [yunginnanet/HellPot](https://github.com/yunginnanet/HellPot).
+
+---
+
 <div align="center">
   <img src="https://tcp.ac/i/00ctL.gif" alt="HellPot"/>
 
@@ -25,7 +29,7 @@ HellPot should probably be built with Go version 1.17 or higher.
 
 HellPot uses [go modules](https://go.dev/blog/using-go-modules). This should make it dead simple to build with a stock Go installation. To make it even simpler, we've added a GNU Makefile.
 
-1 ) `git clone https://github.com/yunginnanet/HellPot`
+1 ) `git clone https://github.com/bdk38/HellPot`
 
 2 ) `cd HellPot`
 
@@ -57,7 +61,7 @@ In the event of a missing configuration file, HellPot will attempt to place it's
 
 5 ) ./HellPot -c config.toml
 
-666 ) 𝙏͘͝𝙝̓̓͛𝙚͑̈́̀ 𝙨͆͠͝𝙠͑̾͌𝙮̽͌͆ 𝙞̓̔̔𝙨͒͐͝ 𝙛͑̈́̚𝙖͛͒𝙡͑͆̽𝙡̾̚̚𝙞͋̒̒𝙣̾͛͝𝙜͒̒̀.́̔͝​
+666 ) 𝙏𝙝𝙚 𝙚𝙣𝙙 𝙞𝙨 𝙚𝙭𝙩𝙧𝙚𝙢𝙚𝙡𝙮 𝙛𝙪𝙘𝙠𝙞𝙣𝙜 𝙣𝙞𝙜𝙝.‌
 
 ## Configuration Reference
 
@@ -186,4 +190,4 @@ All nonexisting URLs are being reverse proxied to a HellPot instance on localhos
 ## Related Suffering
 
 - https://github.com/ginger51011/pandoras_pot
-  - A HellPot inspired HTTP honeypot to punish and educate unruly web crawlers, written in Rust (🚀)
+  - A HellPot inspired HTTP honeypot to punish and educate unruly web crawlers, written in Rust (🦀)
