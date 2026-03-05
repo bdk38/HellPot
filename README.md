@@ -5,10 +5,7 @@
 <div align="center">
   <img src="https://tcp.ac/i/00ctL.gif" alt="HellPot"/>
 
-[![GoDoc](https://godoc.org/github.com/bdk38/HellPot?status.svg)](https://godoc.org/github.com/bdk38/HellPot) [![Go Report Card](https://goreportcard.com/badge/github.com/bdk38/HellPot)](https://goreportcard.com/report/github.com/bdk38/HellPot) [![IRC](https://img.shields.io/badge/ircd.chat-%23tcpdirect-blue.svg)](ircs://ircd.chat:6697/#tcpdirect) [![Mentioned in Awesome Honeypots](https://awesome.re/mentioned-badge.svg)](https://github.com/paralax/awesome-honeypots)
-[![GitHub release](https://img.shields.io/github/release/bdk38/HellPot.svg)](https://github.com/bdk38/HellPot/releases/latest)
-[![License](https://img.shields.io/github/license/bdk38/HellPot.svg)](https://github.com/bdk38/HellPot/blob/main/LICENSE)
-[![Go Version](https://img.shields.io/github/go-mod/go-version/bdk38/HellPot)](https://github.com/bdk38/HellPot)
+[![GoDoc](https://godoc.org/github.com/bdk38/HellPot?status.svg)](https://godoc.org/github.com/bdk38/HellPot) [![Go Report Card](https://goreportcard.com/badge/github.com/bdk38/HellPot)](https://goreportcard.com/report/github.com/bdk38/HellPot) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/bdk38/HellPot/blob/main/LICENSE) [![Go Version](https://img.shields.io/github/go-mod/go-version/bdk38/HellPot)](https://github.com/bdk38/HellPot) [![IRC](https://img.shields.io/badge/ircd.chat-%23tcpdirect-blue.svg)](ircs://ircd.chat:6697/#tcpdirect) [![Mentioned in Awesome Honeypots](https://awesome.re/mentioned-badge.svg)](https://github.com/paralax/awesome-honeypots)
 
 </div>
 
