@@ -7,9 +7,9 @@ import (
 
 	"github.com/rs/zerolog"
 
-	"github.com/yunginnanet/HellPot/internal/config"
-	"github.com/yunginnanet/HellPot/internal/extra"
-	"github.com/yunginnanet/HellPot/internal/http"
+	"github.com/bdk38/HellPot/internal/config"
+	"github.com/bdk38/HellPot/internal/extra"
+	"github.com/bdk38/HellPot/internal/http"
 )
 
 var (
