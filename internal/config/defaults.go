@@ -6,7 +6,7 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/parsers/toml/v2"
 )
 
 var (
