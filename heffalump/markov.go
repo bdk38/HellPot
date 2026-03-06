@@ -3,7 +3,7 @@ package heffalump
 import (
 	"bufio"
 	"io"
-	"math/rand"
+	"math/rand/v2"
 	"strings"
 	"unicode"
 	"unicode/utf8"
@@ -111,7 +111,7 @@ func (mm MarkovMap) Get(w1, w2 string) string {
 	}
 	// We don't care about cryptographically sound entropy here, ignore gosec G404.
 	/* #nosec */
-	r := rand.Intn(len(suffix))
+	r := rand.IntN(len(suffix))
 	return suffix[r]
 }
 
