@@ -1,13 +1,15 @@
 package config
 
 import (
+	_ "embed"
 	"os"
 	"path/filepath"
 	"runtime"
 	"time"
-
-	"github.com/knadh/koanf/parsers/toml/v2"
 )
+
+//go:embed default_config.toml
+var defaultConfigTOML []byte
 
 var (
 	configSections = []string{"logger", "http", "performance", "deception", "ssh"}
@@ -53,15 +55,7 @@ var defOpts = map[string]interface{}{
 }
 
 func gen(path string) {
-	var (
-		dat []byte
-		err error
-	)
-	if dat, err = toml.Parser().Marshal(defOpts); err != nil {
-		println(err.Error())
-		os.Exit(1)
-	}
-	if err = os.WriteFile(path, dat, 0o600); err != nil {
+	if err := os.WriteFile(path, defaultConfigTOML, 0o600); err != nil {
 		println(err.Error())
 		os.Exit(1)
 	}
