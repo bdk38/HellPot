@@ -1,7 +1,6 @@
 package http
 
 import (
-	"fmt"
 	"strings"
 
 	"github.com/valyala/fasthttp"
@@ -27,7 +26,7 @@ func robotsTXT(ctx *fasthttp.RequestCtx) {
 		Strs("PATHS", config.Paths).
 		Msg("SERVE_ROBOTS")
 
-	if _, err := fmt.Fprintf(ctx, paths.String()); err != nil {
+	if _, err := ctx.WriteString(paths.String()); err != nil {
 		slog.Error().Err(err).Msg("SERVE_ROBOTS_ERROR")
 	}
 }
