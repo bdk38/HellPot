@@ -5,7 +5,6 @@ go 1.24.0
 toolchain go1.24.1
 
 require (
-	git.tcp.direct/kayos/common v1.0.0
 	github.com/fasthttp/router v1.5.4
 	github.com/knadh/koanf/parsers/toml v0.1.0
 	github.com/knadh/koanf/providers/env v1.1.0
