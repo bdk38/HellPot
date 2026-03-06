@@ -9,11 +9,11 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/knadh/koanf/providers/env"
+	"github.com/knadh/koanf/providers/env/v2"
 	"github.com/knadh/koanf/providers/file"
 	"github.com/rs/zerolog"
 
-	"github.com/knadh/koanf/parsers/toml"
+	"github.com/knadh/koanf/parsers/toml/v2"
 	viper "github.com/knadh/koanf/v2"
 )
 
@@ -200,13 +200,16 @@ func processOpts() {
 }
 
 func associateExportedVariables() {
-	_ = snek.Load(env.Provider("HELLPOT_", ".", func(s string) string {
-		s = strings.TrimPrefix(s, "HELLPOT_")
-		s = strings.ToLower(s)
-		s = strings.ReplaceAll(s, "__", " ")
-		s = strings.ReplaceAll(s, "_", ".")
-		s = strings.ReplaceAll(s, " ", "_")
-		return s
+	_ = snek.Load(env.Provider(".", env.Opt{
+		Prefix: "HELLPOT_",
+		TransformFunc: func(s, v string) (string, any) {
+			s = strings.TrimPrefix(s, "HELLPOT_")
+			s = strings.ToLower(s)
+			s = strings.ReplaceAll(s, "__", " ")
+			s = strings.ReplaceAll(s, "_", ".")
+			s = strings.ReplaceAll(s, " ", "_")
+			return s, v
+		},
 	}), nil)
 
 	processOpts()
