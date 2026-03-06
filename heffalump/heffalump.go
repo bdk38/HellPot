@@ -9,7 +9,7 @@ import (
 	"io"
 	"sync"
 
-	"github.com/yunginnanet/HellPot/internal/config"
+	"github.com/bdk38/HellPot/internal/config"
 )
 
 var log = config.GetLogger()
