@@ -27,9 +27,8 @@ type Heffalump struct {
 // NewHeffalump instantiates a new Heffalump for markov generation and buffer/io operations
 func NewHeffalump(mm MarkovMap, buffsize int) *Heffalump {
 	return &Heffalump{
-		pool: &sync.Pool{New: func() interface{} {
-			b := make([]byte, buffsize)
-			return b
+		pool: &sync.Pool{New: func() any {
+			return make([]byte, buffsize)
 		}},
 		buffsize: buffsize,
 		mm:       mm,
