@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -44,40 +43,6 @@ var (
 	// Filename returns the current location of our toml config file.
 	Filename string
 )
-
-func writeConfig() string {
-	prefConfigLocation, _ := os.UserConfigDir()
-	if prefConfigLocation != "" {
-		prefConfigLocation = filepath.Join(prefConfigLocation, Title)
-	}
-
-	if prefConfigLocation == "" {
-		home, _ = os.UserHomeDir()
-		prefConfigLocation = filepath.Join(home, ".config", Title)
-	}
-
-	if _, err := os.Stat(prefConfigLocation); os.IsNotExist(err) {
-		if err = os.MkdirAll(prefConfigLocation, 0o750); err != nil && !errors.Is(err, os.ErrExist) {
-			println("error writing new config: " + err.Error())
-			os.Exit(1)
-		}
-	}
-
-	Filename = filepath.Join(prefConfigLocation, "config.toml")
-
-	tomld, terr := toml.Parser().Marshal(snek.All())
-	if terr != nil {
-		fmt.Println("Failed to marshal new configuration file: " + terr.Error())
-		os.Exit(1)
-	}
-
-	if err := os.WriteFile(Filename, tomld, 0o600); err != nil {
-		println("error writing new config: " + err.Error())
-		os.Exit(1)
-	}
-
-	return Filename
-}
 
 // Init will initialize our toml configuration engine and define our default configuration values which can be written to a new configuration file if desired
 func Init() {
@@ -126,8 +91,16 @@ func Init() {
 	loadErr := snek.Load(file.Provider(chosen), toml.Parser())
 
 	if chosen == "" || loadErr != nil {
-		println("No configuration file found, writing new configuration file...")
-		chosen = writeConfig()
+		println("ERROR: No configuration file found.")
+		println("")
+		println("Generate a default config with:")
+		println("  ./HellPot --genconfig")
+		println("")
+		println("Or specify a config file:")
+		println("  ./HellPot --config /path/to/config.toml")
+		println("")
+		println("See README.md for detailed setup instructions.")
+		os.Exit(1)
 	}
 	Filename = chosen
 
