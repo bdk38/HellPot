@@ -73,8 +73,11 @@ func Init() {
 	}
 
 	if chosen == "" && uconf != "" {
+		uconfPath := filepath.Join(uconf, Title, "config.toml")
 		_ = os.MkdirAll(filepath.Join(uconf, Title), 0750)
-		chosen = filepath.Join(uconf, Title, "config.toml")
+		if _, err := os.Stat(uconfPath); err == nil {
+			chosen = uconfPath
+		}
 	}
 
 	if chosen == "" {
