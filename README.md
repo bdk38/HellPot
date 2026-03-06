@@ -147,8 +147,8 @@ wget https://raw.githubusercontent.com/bdk38/HellPot/main/config.toml
   debug = true
   # extra verbose (-vv)
   trace = false
-  # JSON log files will be stored in the below directory.
-  directory = "/home/kayos/.local/share/HellPot/logs/"
+  # JSON log files will be stored in the below directory. Defaults to ~/.local/share/HellPot/logs/ if unset.
+  # directory = "/path/to/logs/"
   # disable all color in console output. when using Windows this will default to true.
   nocolor = false
   # toggles the use of the current date as the names for new log files.
