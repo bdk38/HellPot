@@ -14,8 +14,8 @@ var (
 	defNoColor     = false
 )
 
-var defOpts = map[string]map[string]interface{}{
-	"logger": {
+var defOpts = map[string]interface{}{
+	"logger": map[string]interface{}{
 		"debug":               true,
 		"trace":               false,
 		"nocolor":             defNoColor,
@@ -23,7 +23,7 @@ var defOpts = map[string]map[string]interface{}{
 		"docker_logging":      false,
 		"console_time_format": time.Kitchen,
 	},
-	"http": {
+	"http": map[string]interface{}{
 		"use_unix_socket":         false,
 		"unix_socket_path":        "/var/run/hellpot",
 		"unix_socket_permissions": "0666",
@@ -43,11 +43,11 @@ var defOpts = map[string]map[string]interface{}{
 			"Cloudflare-Traffic-Manager",
 		},
 	},
-	"performance": {
+	"performance": map[string]interface{}{
 		"restrict_concurrency": false,
 		"max_workers":          256,
 	},
-	"deception": {
+	"deception": map[string]interface{}{
 		"server_name": "nginx",
 	},
 }
@@ -57,11 +57,7 @@ func gen(path string) {
 		dat []byte
 		err error
 	)
-	flatDefOpts := make(map[string]interface{}, len(defOpts))
-	for k, v := range defOpts {
-		flatDefOpts[k] = v
-	}
-	if dat, err = toml.Parser().Marshal(flatDefOpts); err != nil {
+	if dat, err = toml.Parser().Marshal(defOpts); err != nil {
 		println(err.Error())
 		os.Exit(1)
 	}
@@ -85,7 +81,15 @@ func setDefaults() {
 		defNoColor = true
 	}
 	for _, def := range configSections {
-		for key, val := range defOpts[def] {
+		section, ok := defOpts[def]
+		if !ok {
+			continue
+		}
+		sectionMap, ok := section.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		for key, val := range sectionMap {
 			if _, ok := val.(map[string]interface{}); !ok {
 				if err := snek.Set(def+"."+key, val); err != nil {
 					println(err.Error())
