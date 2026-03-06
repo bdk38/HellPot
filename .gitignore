@@ -4,5 +4,6 @@ HellPot
 .idea/
 *.save
 *.toml
+!internal/config/default_config.toml
 *.yaml
 .backups/
