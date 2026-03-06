@@ -57,7 +57,11 @@ func gen(path string) {
 		dat []byte
 		err error
 	)
-	if dat, err = snek.Marshal(toml.Parser()); err != nil {
+	flatDefOpts := make(map[string]interface{}, len(defOpts))
+	for k, v := range defOpts {
+		flatDefOpts[k] = v
+	}
+	if dat, err = toml.Parser().Marshal(flatDefOpts); err != nil {
 		println(err.Error())
 		os.Exit(1)
 	}
