@@ -1,4 +1,4 @@
-module github.com/yunginnanet/HellPot
+module github.com/bdk38/HellPot
 
 go 1.24.0
 

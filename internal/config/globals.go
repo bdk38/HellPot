@@ -69,7 +69,7 @@ var (
 
 	// UseragentBlacklistMatchers contains useragent matches checked for with strings.Contains() that
 	// prevent HellPot from firing off.
-	// See: https://github.com/yunginnanet/HellPot/issues/23
+	// See: https://github.com/bdk38/HellPot/issues/23
 	UseragentBlacklistMatchers []string
 )
 

@@ -12,8 +12,8 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/valyala/fasthttp"
 
-	"github.com/yunginnanet/HellPot/heffalump"
-	"github.com/yunginnanet/HellPot/internal/config"
+	"github.com/bdk38/HellPot/heffalump"
+	"github.com/bdk38/HellPot/internal/config"
 )
 
 var log *zerolog.Logger
