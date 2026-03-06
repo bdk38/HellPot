@@ -19,4 +19,4 @@ Instead of continuing to fight the marshaler, we asked: 'Why are we generating T
 4. **Simplicity** - Removes ~15 lines of complex marshaling logic
 5. **Separation of concerns** - Config format lives in config files, not Go structs
 
-This is a pattern worth remembering: sometimes the right solution is to stop fighting a tool and rethink the approach entirely. The embedded static file pattern is simpler, more maintainable, and more correct than dynamic generation ever was.
+This is a pattern worth remembering: sometimes the right solution is to stop fighting a tool and rethink the approach entirely. The embedded static file pattern is simpler and more maintainable.
