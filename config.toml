@@ -1,0 +1,30 @@
+# HellPot Default Configuration
+
+[logger]
+debug = true
+trace = false
+nocolor = false
+use_date_filename = true
+docker_logging = false
+console_time_format = "3:04PM"
+
+[http]
+use_unix_socket = false
+unix_socket_path = "/var/run/hellpot"
+unix_socket_permissions = "0666"
+bind_addr = "127.0.0.1"
+bind_port = "8080"
+real_ip_header = "X-Real-IP"
+uagent_string_blacklist = ["Cloudflare-Traffic-Manager"]
+
+[http.router]
+catchall = false
+makerobots = true
+paths = ["wp-login.php", "wp-login"]
+
+[performance]
+restrict_concurrency = false
+max_workers = 256
+
+[deception]
+server_name = "nginx"

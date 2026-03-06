@@ -55,8 +55,19 @@ var defOpts = map[string]interface{}{
 }
 
 func gen(path string) {
+	if path == "" {
+		cwd, err := os.Getwd()
+		if err != nil {
+			println("ERROR: Cannot determine current directory: " + err.Error())
+			os.Exit(1)
+		}
+		path = filepath.Join(cwd, "config.toml")
+	}
+
 	if err := os.WriteFile(path, defaultConfigTOML, 0o600); err != nil {
-		println(err.Error())
+		println("ERROR: Cannot write config file: " + err.Error())
+		println("")
+		println("If installing system-wide, see README.md for proper setup.")
 		os.Exit(1)
 	}
 
@@ -102,6 +113,6 @@ func setDefaults() {
 	}
 
 	if GenConfig {
-		gen("./config.toml")
+		gen("")
 	}
 }

@@ -39,29 +39,67 @@ HellPot uses [go modules](https://go.dev/blog/using-go-modules). This should mak
 
 ## Usage
 
-### YOLO Method:
+### Quick Start (User Installation):
 
-In the event of a missing configuration file, HellPot will attempt to place it's default config in **$HOME/.config/HellPot/config.toml**. This allows irresponsible souls to begin raining hellfire with ease, **_immediately_**:
+1 ) Download a [compiled release](https://github.com/bdk38/HellPot/releases/latest)
 
-1 ) Download a [compiled release](https://github.com/yunginnanet/HellPot/releases/latest)
+2 ) Generate default config:
+   ```bash
+   ./HellPot --genconfig
+   ```
 
-2 ) Run binary and immediately begin sending clients directly to hell.
+3 ) Edit `config.toml` as desired.
+
+4 ) Run HellPot:
+   ```bash
+   ./HellPot --config config.toml
+   ```
 
 ---
 
-### Reasonable Method:
+### System-Wide Installation:
 
-1 ) Configure webserver as reverse proxy (see below)
+For production deployments or systemd services:
 
-2 ) `./HellPot --genconfig `
+1 ) Install binary:
+   ```bash
+   sudo cp HellPot /usr/local/bin/
+   ```
 
-3 ) Edit your newly generated `config.toml` as desired.
+2 ) Create config directory and generate config:
+   ```bash
+   sudo mkdir -p /etc/hellpot
+   cd /etc/hellpot
+   sudo /usr/local/bin/HellPot --genconfig
+   ```
 
-4 ) Ponder your ~~existence~~ server's ability to handle your chosen performance values.
+3 ) Edit `/etc/hellpot/config.toml` as desired.
 
-5 ) ./HellPot -c config.toml
+4 ) Run with explicit config path:
+   ```bash
+   sudo /usr/local/bin/HellPot --config /etc/hellpot/config.toml
+   ```
 
-666 ) 𝙏𝙝𝙚 𝙚𝙣𝙙 𝙞𝙨 𝙚𝙭𝙩𝙧𝙚𝙢𝙚𝙡𝙮 𝙛𝙪𝙘𝙠𝙞𝙣𝙜 𝙣𝙞𝙜𝙝.‌
+5 ) (Optional) Create dedicated user for better security:
+   ```bash
+   sudo useradd -r -s /bin/false hellpot
+   sudo chown hellpot:hellpot /etc/hellpot/config.toml
+   sudo -u hellpot /usr/local/bin/HellPot --config /etc/hellpot/config.toml
+   ```
+
+---
+
+### Alternative: Use Repository Config
+
+You can also copy the example config directly from the repository:
+
+```bash
+wget https://raw.githubusercontent.com/bdk38/HellPot/main/config.toml
+# Edit config.toml as needed
+./HellPot --config config.toml
+```
+
+---
 
 ## Configuration Reference
 
@@ -109,8 +147,8 @@ In the event of a missing configuration file, HellPot will attempt to place it's
   debug = true
   # extra verbose (-vv)
   trace = false
-  # JSON log files will be stored in the below directory.
-  directory = "/home/kayos/.local/share/HellPot/logs/"
+  # JSON log files will be stored in the below directory. Defaults to ~/.local/share/HellPot/logs/ if unset.
+  # directory = "/path/to/logs/"
   # disable all color in console output. when using Windows this will default to true.
   nocolor = false
   # toggles the use of the current date as the names for new log files.
