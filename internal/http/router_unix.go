@@ -10,7 +10,7 @@ import (
 	"github.com/fasthttp/router"
 	"github.com/valyala/fasthttp"
 
-	"github.com/yunginnanet/HellPot/internal/config"
+	"github.com/bdk38/HellPot/internal/config"
 )
 
 func listenOnUnixSocket(addr string, r *router.Router) error {
