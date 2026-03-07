@@ -54,7 +54,7 @@ jobs:
         run: |
           VERSION="${GITHUB_REF#refs/tags/}"
 
-          BINARY_NAME="HellPot-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+          BINARY_NAME="HellPot-Community-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
           if [ "${{ matrix.os }}" = "windows" ]; then
             BINARY_NAME="${BINARY_NAME}.exe"
           fi
@@ -67,7 +67,7 @@ jobs:
       - name: Generate checksum
         run: |
           VERSION="${GITHUB_REF#refs/tags/}"
-          BINARY_NAME="HellPot-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+          BINARY_NAME="HellPot-Community-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
           if [ "${{ matrix.os }}" = "windows" ]; then
             BINARY_NAME="${BINARY_NAME}.exe"
           fi
@@ -76,9 +76,9 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: HellPot-${{ matrix.os }}-${{ matrix.arch }}
+          name: HellPot-Community-${{ matrix.os }}-${{ matrix.arch }}
           path: |
-            HellPot-*
+            HellPot-Community-*
 
   release:
     name: Create Release
@@ -110,7 +110,7 @@ jobs:
           generate_release_notes: true
           files: ./release-assets/*
           body: |
-            ## HellPot ${{ github.ref_name }}
+            ## HellPot Community ${{ github.ref_name }}
 
             ### 📦 Downloads
             Download the appropriate binary for your platform below.
