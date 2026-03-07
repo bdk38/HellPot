@@ -2,9 +2,6 @@ package heffalump
 
 import (
 	"bufio"
-	"bytes"
-	"compress/gzip"
-	"encoding/base64"
 	"io"
 	"math/rand/v2"
 	"strings"
@@ -14,33 +11,8 @@ import (
 
 var DefaultMarkovMap MarkovMap
 
-// unpackGzipBase64 decodes a base64-encoded gzipped string using Go's standard library.
-func unpackGzipBase64(encoded string) (string, error) {
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return "", err
-	}
-	reader, err := gzip.NewReader(bytes.NewReader(decoded))
-	if err != nil {
-		return "", err
-	}
-	defer reader.Close()
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, reader); err != nil { // #nosec G110
-		return "", err
-	}
-	return buf.String(), nil
-}
-
 func init() {
 	// DefaultMarkovMap is a Markov chain based on src.
-	src, err := unpackGzipBase64(srcGz)
-	if err != nil {
-		panic(err)
-	}
-	if len(src) < 1 {
-		panic("failed to unpack source")
-	}
 	DefaultMarkovMap = MakeMarkovMap(strings.NewReader(src))
 	DefaultHeffalump = NewHeffalump(DefaultMarkovMap, 100*1<<10)
 }
