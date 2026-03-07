@@ -45,8 +45,8 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: |
-            yunginnanet/hellpot
-            ghcr.io/yunginnanet/hellpot
+            bdk38/hellpot
+            ghcr.io/bdk38/hellpot
           # generate Docker tags based on the following events/attributes
           tags: |
             type=ref,event=branch
