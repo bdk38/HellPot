@@ -2,6 +2,7 @@ package config
 
 import (
 	"io"
+	"math"
 	"os"
 	"strings"
 
@@ -62,7 +63,8 @@ func (cli help) lb(n int) {
 }
 
 func (cli help) printUsage() {
-	if !term.IsTerminal(int(os.Stdout.Fd())) {
+	fd := os.Stdout.Fd()
+	if fd > uintptr(math.MaxInt) || !term.IsTerminal(int(fd)) {
 		os.Exit(1)
 	}
 	cli.header()
