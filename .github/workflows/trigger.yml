@@ -15,7 +15,7 @@ jobs:
             release
           dispatch-type: workflow
           permission: admin
-          repository: yunginnanet/HellPot
+          repository: bdk38/HellPot
           static-args: |
             repository=${{ github.repository }}
             comment-id=${{ github.event.comment.id }}
