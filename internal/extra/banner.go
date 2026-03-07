@@ -1,120 +1,90 @@
 package extra
 
 import (
-	"bytes"
-	"compress/gzip"
-	crip "crypto/rand"
-	"encoding/base64"
+	"crypto/rand"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"os"
 	"runtime"
 	"strings"
-	"time"
 
 	"github.com/bdk38/HellPot/internal/config"
 )
 
-const hellpot = "H4sIAAAAAAACA8VXvW7bQAze9QpZOGQUZNXntBD6Ahm7Gx1cx0jdRnKRKAUCdPDgQavOgB/QTxLZ1P3oRJ5Obo0CtnE5feSR30fylOhmfjv9PEtzwIXIj4dds/xw2jsequNB2gizXd3Mxad2O81PX7AAe+UNGneuR8aUOuTsqQUDXAMv1cJE5Tfbn6GaKz45kpid+lQc3zoNY5zmEUEt+jCGNZUjeYr0StZYmbwtwNavuCaUFWA8MjxVIImjNas6TPQT9Tnq4MnYJF0zkhVU4rLvqflscU/ox0Lg45qKTjoSmiLQPA+ZuTT7BbrckpfWKMkUquTErIPEYbPoKjamy6SjR0feGssPUMYTCDWEnrR8c0m7hJ2B4jekK2KUsBfa7bpTD0ftnmKPE9nN2IzcLc99vxhIUbszlwqrJoklpQWlI6AeQh9nDHXj2ldOvyat/vZdDxVfzZdbSuspRUe/+IKZtxq2GWlbZzS6jnrnDEXGCkXUGnahuTgAA+DY9HU8FUoYH3ji/q84HetDWmT/Y3ml6oX21/eCNzB46+6UuVTSQHXgGmzUTJT/zeNQ3zCvysEBuH3hER9CbhNa6FoLHSBfT2gmK/rFKCj/K1nTfcBduKHVwgjo+Y+HilXBEAqhKg1X6lQzMaIF6ZK6ipVILR0Awh16SWy9KsxvZXWbL34oGpNmMcPNdYFmiE40+qV9cg4Logjm2uXjukzK5a/kYf28WpaTn4u3zcvkfvX09GVTnuFfEYzBNujvr9+S5SafvL0Wj+uiWBSrsov/I6axmMXiLhYf40zE2TTOZnF2F2fNn2n0DpcvBxhQEAAA"
+// ASCII art for HellPot banner
+const hellpotArt = `   ▄█    █▄       ▄████████  ▄█        ▄█          ▄███████▄  ▄██████▄      ███
+  ███    ███     ███    ███ ███       ███         ███    ███ ███    ███ ▀█████████▄
+  ███    ███     ███    █▀  ███       ███         ███    ███ ███    ███    ▀███▀▀██
+ ▄███▄▄▄▄███▄▄  ▄███▄▄▄     ███       ███         ███    ███ ███    ███     ███   ▀
+▀▀███▀▀▀▀███▀  ▀▀███▀▀▀     ███       ███       ▀█████████▀  ███    ███     ███
+  ███    ███     ███    █▄  ███       ███         ███        ███    ███     ███
+  ███    ███     ███    ███ ███▌    ▄ ███▌    ▄   ███        ███    ███     ███
+  ███    █▀      ██████████ █████▄▄██ █████▄▄██  ▄████▀       ▀██████▀     ▄████▀
+                            ▀         ▀`
 
-// unpackGzipBase64 decodes a base64-encoded gzipped string using Go's standard library.
-func unpackGzipBase64(encoded string) (string, error) {
-	decoded, err := base64.StdEncoding.DecodeString(encoded)
-	if err != nil {
-		return "", err
-	}
-	reader, err := gzip.NewReader(bytes.NewReader(decoded))
-	if err != nil {
-		return "", err
-	}
-	defer reader.Close()
-	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, reader); err != nil {
-		return "", err
-	}
-	return buf.String(), nil
+// ANSI color codes for the colorful effect
+var colors = []string{
+	"38;5;33",  // blue
+	"38;5;39",  // bright blue
+	"38;5;51",  // cyan
+	"38;5;49",  // bright cyan
+	"38;5;48",  // teal
+	"38;5;84",  // green
+	"38;5;118", // lime
+	"38;5;154", // yellow-green
+	"38;5;190", // yellow
+	"38;5;226", // bright yellow
+	"38;5;214", // orange
+	"38;5;208", // bright orange
+	"38;5;203", // red-orange
+	"38;5;198", // pink
+	"38;5;199", // magenta
+	"38;5;171", // purple
+	"38;5;141", // violet
 }
 
-func rc(s []string) string {
-	return strings.TrimSpace(s[ru()%len(s)])
-}
-
-func process(in string) (s string) {
-	var v = strings.Split(config.Version, "")
-	var maj, min, smin = "", "", ""
-	if len(config.Version) > 0 {
-		maj = v[0]
-	}
-	if len(config.Version) > 2 {
-		min = v[2]
-	}
-	if len(config.Version) > 4 {
-		smin = v[4]
-	}
-	defl8, _ := unpackGzipBase64(in)
-	sp := strings.Split(defl8, "|")
-	s = sp[0]
-	if smin == "" || len(config.Version) == 7 || config.Version == "dev" {
-		s = strings.ReplaceAll(s, "$1;40m.", "$1;40m")
-		if len(config.Version) == 7 || config.Version == "dev" {
-			s = strings.ReplaceAll(s, "$3;40m.", "$3;40m")
-		}
-	}
-	c := strings.Split(sp[1], ",")
-	cproc := func(in, num string) (inr string) {
-		inr = in
-		tor := fmt.Sprintf("$%s", num)
-		for n := strings.Count(inr, tor); n > 0; n-- {
-			inr = strings.Replace(inr, tor, rc(c), 1)
-		}
-		return
-	}
-	for n := 1; n < 5; n++ {
-		s = cproc(s, fmt.Sprintf("%d", n))
-	}
-	if len(config.Version) == 7 || config.Version == "dev" {
-		maj = "[" + config.Version + "]"
-		min = ""
-		smin = ""
-	}
-	s = strings.ReplaceAll(s, "$maj", maj)
-	s = strings.ReplaceAll(s, "$min", min)
-	s = strings.ReplaceAll(s, "$smin", smin)
-	return
-}
-
-func ru() int {
-	b := make([]byte, 8192)
-	if _, err := crip.Read(b); err != nil {
-		bannerFail(err)
+// randomInt returns a random integer for color selection
+func randomInt() int {
+	b := make([]byte, 4)
+	if _, err := rand.Read(b); err != nil {
+		return 0
 	}
 	return int(binary.LittleEndian.Uint32(b))
 }
 
-// printBanner prints our entropic banner
-func printBanner() {
-	time.Sleep(5 * time.Millisecond)
-	println("\n" + process(hellpot) + "\n\n")
-	time.Sleep(5 * time.Millisecond)
-}
-
-func bannerFail(errs ...error) {
-	println("failed printing banner, consider using --nocolor")
-	for _, err := range errs {
-		if err != nil {
-			println(err.Error())
+// colorize adds random ANSI colors to the ASCII art
+func colorize(art string) string {
+	var result strings.Builder
+	for _, char := range art {
+		if char != ' ' && char != '\n' {
+			color := colors[randomInt()%len(colors)]
+			result.WriteString(fmt.Sprintf("\033[%sm%c\033[0m", color, char))
+		} else {
+			result.WriteRune(char)
 		}
 	}
-	os.Exit(1)
+	return result.String()
 }
 
-// Banner prints out our banner (using spooky magic)
+// Banner prints the HellPot banner with version and URLs
 func Banner() {
-	//goland:noinspection GoBoolExpressions
+	// Windows and --nocolor mode: simple text output
 	if runtime.GOOS == "windows" || config.NoColor {
-		_, _ = os.Stdout.Write([]byte(config.Title + " " + config.Version + "\n\n"))
+		fmt.Fprintf(os.Stdout, "%s %s\n\n", config.Title, config.Version)
 		return
 	}
-	printBanner()
+
+	// Colorful banner for Unix-like systems
+	fmt.Println()
+	fmt.Println(colorize(hellpotArt))
+	fmt.Println()
+
+	// Version
+	fmt.Printf("                                    \033[38;5;46mv%s\033[0m\n\n", config.Version)
+
+	// URLs with attribution
+	fmt.Println("\033[38;5;240m[ \033[38;5;33mgithub.com/yunginnanet/HellPot\033[38;5;240m ]\033[0m (upstream)")
+	fmt.Println("\033[38;5;240m[ \033[38;5;39mgithub.com/bdk38/HellPot\033[38;5;240m ]\033[0m (community fork)")
+	fmt.Println()
 }
+
