@@ -1,0 +1,124 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build for ${{ matrix.os }}-${{ matrix.arch }}
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - os: linux
+            arch: amd64
+            runner: ubuntu-latest
+          - os: linux
+            arch: arm64
+            runner: ubuntu-latest
+          - os: linux
+            arch: arm
+            runner: ubuntu-latest
+          - os: windows
+            arch: amd64
+            runner: ubuntu-latest
+          - os: darwin
+            arch: amd64
+            runner: macos-latest
+          - os: darwin
+            arch: arm64
+            runner: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.os }}
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: 0
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+
+          BINARY_NAME="HellPot-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+
+          go build -trimpath \
+            -ldflags "-s -w -X main.version=${VERSION}" \
+            -o "${BINARY_NAME}" \
+            ./cmd/HellPot
+
+      - name: Generate checksum
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          BINARY_NAME="HellPot-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
+          if [ "${{ matrix.os }}" = "windows" ]; then
+            BINARY_NAME="${BINARY_NAME}.exe"
+          fi
+          sha256sum "${BINARY_NAME}" > "${BINARY_NAME}.sha256"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: HellPot-${{ matrix.os }}-${{ matrix.arch }}
+          path: |
+            HellPot-*
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./binaries
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find ./binaries -type f -exec mv {} ./release-assets/ \;
+          cd release-assets
+          find . -name 'HellPot-*' ! -name '*.sha256' -exec sha256sum {} \; > checksums.sha256.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          draft: false
+          generate_release_notes: true
+          files: ./release-assets/*
+          body: |
+            ## HellPot ${{ github.ref_name }}
+
+            ### 📦 Downloads
+            Download the appropriate binary for your platform below.
+
+            ### 🔒 Verify Checksums
+            ```bash
+            sha256sum -c checksums.sha256.txt
+            ```
+
+            ### 📝 Release Notes
+            See below for detailed changes.
