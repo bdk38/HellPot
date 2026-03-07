@@ -1,4 +1,9 @@
 > **Note**: This is a community-maintained fork of HellPot. The original author, [yunginnanet](https://github.com/yunginnanet), has passed away. This fork exists to continue maintaining and supporting this project for the community. All credit for the original creation and design goes to yunginnanet. The original repository can be found at [yunginnanet/HellPot](https://github.com/yunginnanet/HellPot).
+>
+> 
+> **Latest Release:** [HellPot 0.6.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.6.0)
+>
+> This release includes pre-built binaries for Linux, macOS, Windows, and FreeBSD (386, amd64, and arm64 architectures) with accompanying SHA-256 checksums. It also incorporates modernized dependencies, improved configuration handling, several bug fixes, and other code quality enhancements. Further development is ongoing, and contributions are warmly welcomed.
 
 ---
 
@@ -25,7 +30,7 @@ Under the hood of this eternal suffering is a markov engine that chucks bits and
 
 ## Building From Source
 
-HellPot should probably be built with Go version 1.17 or higher.
+HellPot should probably be built with Go version 1.24 or higher.
 
 HellPot uses [go modules](https://go.dev/blog/using-go-modules). This should make it dead simple to build with a stock Go installation. To make it even simpler, we've added a GNU Makefile.
 
