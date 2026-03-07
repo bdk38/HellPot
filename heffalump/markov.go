@@ -26,7 +26,7 @@ func unpackGzipBase64(encoded string) (string, error) {
 	}
 	defer reader.Close()
 	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, reader); err != nil { // #nosec G110
+	if _, err := io.Copy(&buf, reader); err != nil { /* #nosec G110 */
 		return "", err
 	}
 	return buf.String(), nil
