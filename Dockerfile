@@ -17,7 +17,7 @@ RUN \
 
 
 FROM gcr.io/distroless/static-debian11
-LABEL org.opencontainers.image.source https://github.com/bdk38/HellPot
+LABEL org.opencontainers.image.source="https://github.com/bdk38/HellPot"
 
 COPY --from=build /go/src/app/HellPot /app
 COPY --from=build /go/src/app/docker_config.toml /config
