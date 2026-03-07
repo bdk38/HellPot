@@ -1,30 +1,9 @@
 package config
 
-import (
-	"runtime/debug"
-)
-
 // Title is the name of the application used throughout the configuration process.
 const Title = "HellPot"
 
-var Version = "dev"
-
-func init() {
-	if Version != "dev" {
-		return
-	}
-	binInfo := make(map[string]string)
-	info, ok := debug.ReadBuildInfo()
-	if !ok {
-		return
-	}
-	for _, v := range info.Settings {
-		binInfo[v.Key] = v.Value
-	}
-	if gitrev, ok := binInfo["vcs.revision"]; ok {
-		Version = gitrev[:7]
-	}
-}
+var Version = "0.6.0"
 
 var (
 	// BannerOnly when toggled causes HellPot to only print the banner and version then exit.
