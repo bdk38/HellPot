@@ -4,6 +4,8 @@ on:
     types: [created]
 jobs:
   slashCommandDispatch:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: Slash Command Dispatch
