@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/knadh/koanf/parsers/toml/v2"
-	viper "github.com/knadh/koanf/v2"
+	koanf "github.com/knadh/koanf/v2" // ← clean alias (no more confusing "viper")
 )
 
 // generic vars
@@ -21,7 +21,7 @@ var (
 	noColorForce = false
 	customconfig = false
 	home         string
-	snek         = viper.New(".")
+	snek         = koanf.New(".") // keep snek. No step on snek.
 )
 
 func init() {
@@ -36,7 +36,7 @@ func init() {
 
 // exported generic vars
 var (
-	// Trace is the value of our trace (extra verbose)  on/off toggle as per the current configuration.
+	// Trace is the value of our trace (extra verbose) on/off toggle as per the current configuration.
 	Trace bool
 	// Debug is the value of our debug (verbose) on/off toggle as per the current configuration.
 	Debug bool
@@ -44,9 +44,9 @@ var (
 	Filename string
 )
 
-// Init will initialize our toml configuration engine and define our default configuration values which can be written to a new configuration file if desired
+// Init will initialize our toml configuration engine and define our default configuration values.
 func Init() {
-	argParse()
+	 argParse()
 
 	if customconfig {
 		associateExportedVariables()
@@ -55,68 +55,71 @@ func Init() {
 
 	setDefaults()
 
-	chosen := ""
+	chosen := findConfigPath()
+	if chosen == "" {
+		printConfigErrorAndExit()
+		return
+	}
 
-	uconf, _ := os.UserConfigDir()
+	// Load the config file (only once)
+	if err := snek.Load(file.Provider(chosen), toml.Parser()); err != nil {
+		fmt.Printf("failed to load config file %s: %v\n", chosen, err)
+		os.Exit(1)
+	}
 
+	Filename = chosen
+	associateExportedVariables()
+}
+
+// findConfigPath returns the first existing config.toml in our standard search order.
+// Returns "" if none is found.
+func findConfigPath() string {
+	// 1. System-wide config (Linux/macOS only)
 	switch runtime.GOOS {
 	case "windows":
-		//
+		// Windows support can be added here later if needed
 	default:
-		if _, err := os.Stat(filepath.Join("/etc/", Title, "config.toml")); err == nil {
-			chosen = filepath.Join("/etc/", Title, "config.toml")
+		etcPath := filepath.Join("/etc/", Title, "config.toml")
+		if _, err := os.Stat(etcPath); err == nil {
+			return etcPath
 		}
 	}
 
-	if chosen == "" && uconf == "" && home != "" {
+	// 2. User config directory (~/.config/HellPot/config.toml)
+	uconf, _ := os.UserConfigDir()
+	if uconf == "" && home != "" {
 		uconf = filepath.Join(home, ".config")
 	}
-
-	if chosen == "" && uconf != "" {
-		uconfPath := filepath.Join(uconf, Title, "config.toml")
+	if uconf != "" {
+		userPath := filepath.Join(uconf, Title, "config.toml")
 		_ = os.MkdirAll(filepath.Join(uconf, Title), 0750)
-		if _, err := os.Stat(uconfPath); err == nil {
-			chosen = uconfPath
+		if _, err := os.Stat(userPath); err == nil {
+			return userPath
 		}
 	}
 
-	if chosen == "" {
-		pwd, _ := os.Getwd()
-		if _, err := os.Stat("./config.toml"); err == nil {
-			chosen = "./config.toml"
-		} else {
-			if _, err := os.Stat(filepath.Join(pwd, "config.toml")); err == nil {
-				chosen = filepath.Join(pwd, "config.toml")
-			}
+	// 3. Current working directory
+	pwd, _ := os.Getwd()
+	for _, p := range []string{"./config.toml", filepath.Join(pwd, "config.toml")} {
+		if _, err := os.Stat(p); err == nil {
+			return p
 		}
 	}
 
-	loadErr := snek.Load(file.Provider(chosen), toml.Parser())
+	return ""
+}
 
-	if chosen == "" || loadErr != nil {
-		println("ERROR: No configuration file found.")
-		println("")
-		println("Generate a default config with:")
-		println("  ./HellPot --genconfig")
-		println("")
-		println("Or specify a config file:")
-		println("  ./HellPot --config /path/to/config.toml")
-		println("")
-		println("See README.md for detailed setup instructions.")
-		os.Exit(1)
-	}
-	Filename = chosen
-
-	if loadErr = snek.Load(file.Provider(chosen), toml.Parser()); loadErr != nil {
-		fmt.Println("failed to load default config file: ", loadErr.Error())
-		os.Exit(1)
-	}
-
-	/*	snek.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
-		snek.SetEnvPrefix(Title)
-		snek.AutomaticEnv()
-	*/
-	associateExportedVariables()
+func printConfigErrorAndExit() {
+	println("ERROR: No configuration file found.")
+	println("")
+	println("Generate a default config with:")
+	println("  ./HellPot --genconfig")
+	println("")
+	println("Or specify a config file:")
+	println("  ./HellPot --config /path/to/config.toml")
+	println("")
+	println("See README.md for detailed setup instructions.")
+	os.Exit(1)
 }
 
 func loadCustomConfig(path string) {
@@ -176,6 +179,7 @@ func processOpts() {
 }
 
 func associateExportedVariables() {
+	// Load environment variables (HELLPOT_*)
 	_ = snek.Load(env.Provider(".", env.Opt{
 		Prefix: "HELLPOT_",
 		TransformFunc: func(s, v string) (string, any) {
@@ -187,7 +191,6 @@ func associateExportedVariables() {
 			return s, v
 		},
 	}), nil)
-
 	processOpts()
 
 	if noColorForce {
@@ -202,14 +205,16 @@ func associateExportedVariables() {
 		}
 	}
 
-	// We set exported variables here so that it tracks when accessed from other packages.
-
-	if Debug || forceDebug {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
-		Debug = true
-	}
-	if Trace || forceTrace {
-		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	// === CLI flag overrides (flags always win over config + env) ===
+	// We do this last so --debug / --trace take precedence.
+	if forceTrace || Trace {
 		Trace = true
+		zerolog.SetGlobalLevel(zerolog.TraceLevel)
+	} else if forceDebug || Debug {
+		Debug = true
+		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+	} else {
+		// neither enabled → force INFO level (this was missing)
+		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 }
