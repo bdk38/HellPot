@@ -1,8 +1,8 @@
 module github.com/bdk38/HellPot
 
-go 1.24.0
+go 1.25.8
 
-toolchain go1.24.1
+toolchain go1.25.8
 
 require (
 	github.com/fasthttp/router v1.5.4
