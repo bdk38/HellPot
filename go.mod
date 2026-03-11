@@ -2,8 +2,6 @@ module github.com/bdk38/HellPot
 
 go 1.25.8
 
-toolchain go1.25.8
-
 require (
 	github.com/fasthttp/router v1.5.4
 	github.com/knadh/koanf/parsers/toml/v2 v2.2.0
