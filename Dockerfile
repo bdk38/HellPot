@@ -3,7 +3,7 @@
 # ==============================================================================
 #
 # use newer golang because that's what I'm building with currently
-FROM golang:1.25.7 AS build
+FROM golang:1.25.8 AS build
 #
 # set the primary directory for build commands
 WORKDIR /go/src/app
