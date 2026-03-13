@@ -10,7 +10,7 @@ require (
 	github.com/knadh/koanf/v2 v2.3.3
 	github.com/rs/zerolog v1.34.0
 	github.com/valyala/fasthttp v1.69.0
-	golang.org/x/term v0.40.0
+	golang.org/x/term v0.41.0
 )
 
 require (
@@ -26,5 +26,5 @@ require (
 	github.com/pelletier/go-toml/v2 v2.2.4 // indirect
 	github.com/savsgio/gotils v0.0.0-20240704082632-aef3928b8a38 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
-	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/sys v0.42.0 // indirect
 )
