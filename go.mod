@@ -2,8 +2,8 @@ module github.com/bdk38/HellPot
 
 go 1.25.8
 
-replace github.com/mitchellh/reflectwalk => github.com/bdk38/reflectwalk v1.0.3
-replace github.com/mitchellh/copystructure => github.com/bdk38/copystructure v1.2.1
+replace github.com/mitchellh/reflectwalk => github.com/bdk38/reflectwalk v1.0.3 // use fork with HellPot-specific patches
+replace github.com/mitchellh/copystructure => github.com/bdk38/copystructure v1.2.1 // use fork with HellPot-specific patches
 
 require (
 	github.com/fasthttp/router v1.5.4
