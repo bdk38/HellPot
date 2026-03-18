@@ -2,7 +2,7 @@ module github.com/bdk38/HellPot
 
 go 1.25.8
 
-replace github.com/mitchellh/reflectwalk => github.com/bdk38/reflectwalk v1.0.3 // use fork with HellPot-specific patches
+replace github.com/mitchellh/reflectwalk => github.com/bdk38/reflectwalk v1.0.4 // use fork with HellPot-specific patches
 replace github.com/mitchellh/copystructure => github.com/bdk38/copystructure v1.2.2 // use fork with HellPot-specific patches
 
 require (
