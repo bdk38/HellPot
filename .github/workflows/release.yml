@@ -104,7 +104,7 @@ jobs:
           find . -name 'HellPot-*' ! -name '*.sha256' -exec sha256sum {} \; > checksums.sha256.txt
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           draft: false
           generate_release_notes: true
