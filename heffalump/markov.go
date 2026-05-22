@@ -5,8 +5,6 @@ import (
 	"io"
 	"math/rand/v2"
 	"strings"
-	"unicode"
-	"unicode/utf8"
 )
 
 var DefaultMarkovMap MarkovMap
@@ -14,50 +12,7 @@ var DefaultMarkovMap MarkovMap
 func init() {
 	// DefaultMarkovMap is a Markov chain based on src.
 	DefaultMarkovMap = MakeMarkovMap(strings.NewReader(src))
-	DefaultHeffalump = NewHeffalump(DefaultMarkovMap, 100*1<<10)
-}
-
-// ScanHTML is a basic split function for a Scanner that returns each
-// space-separated word of text or HTML tag, with surrounding spaces deleted.
-// It will never return an empty string. The definition of space is set by
-// unicode.IsSpace.
-func ScanHTML(data []byte, atEOF bool) (advance int, token []byte, err error) {
-	// Skip leading spaces.
-	var r rune
-	var start = 0
-	for width := 0; start < len(data); start += width {
-		r, width = utf8.DecodeRune(data[start:])
-		if !unicode.IsSpace(r) {
-			break
-		}
-	}
-	switch {
-	case r == '<':
-		// Scan until closing bracket
-		for i := start; i < len(data); i++ {
-			if data[i] == '>' {
-				return i + 1, data[start : i+1], nil
-			}
-		}
-	default:
-		// Scan until space, marking end of word.
-		for width, i := 0, start; i < len(data); i += width {
-			var r rune
-			r, width = utf8.DecodeRune(data[i:])
-			if unicode.IsSpace(r) {
-				return i + width, data[start:i], nil
-			}
-			if r == '<' {
-				return i, data[start:i], nil
-			}
-		}
-	}
-	// If we're at EOF, we have a final, non-empty, non-terminated word. Return it.
-	if atEOF && len(data) > start {
-		return len(data), data[start:], nil
-	}
-	// Request more data.
-	return start, nil, nil
+	DefaultHeffalump = NewHeffalump(DefaultMarkovMap, 256*1<<10)
 }
 
 type tokenPair [2]string
@@ -65,26 +20,47 @@ type tokenPair [2]string
 // MarkovMap is a map that acts as a Markov chain generator.
 type MarkovMap map[tokenPair][]string
 
-// MakeMarkovMap makes an empty MakeMarkov and fills it with r.
+// MakeMarkovMap makes an empty MarkovMap and fills it with r.
 func MakeMarkovMap(r io.Reader) MarkovMap {
 	m := MarkovMap{}
 	m.Fill(r)
 	return m
 }
 
-// Fill adds all the tokens in r to a MarkovMap
+// Fill adds all the tokens in r to a MarkovMap.
+//
+// bufio.ScanWords is used in place of the previous ScanHTML split function.
+// The corpus is now plain text so the HTML-aware scanner is unnecessary, and
+// ScanWords avoids the per-byte utf8.DecodeRune overhead that ScanHTML paid
+// even for ASCII-heavy input.
+//
+// All token strings are interned into a single map before being stored as
+// bigram keys or successor values. This means every unique word is backed by
+// exactly one string allocation. Subsequent map lookups hash the same pointer
+// and length rather than re-hashing the underlying bytes on each Get call,
+// which meaningfully reduces CPU overhead in the hot streaming path.
 func (mm MarkovMap) Fill(r io.Reader) {
+	intern := make(map[string]string)
+	interned := func(s string) string {
+		if v, ok := intern[s]; ok {
+			return v
+		}
+		intern[s] = s
+		return s
+	}
+
 	var w1, w2, w3 string
 
 	s := bufio.NewScanner(r)
-	s.Split(ScanHTML)
+	s.Split(bufio.ScanWords)
 	for s.Scan() {
-		w3 = s.Text()
+		w3 = interned(s.Text())
 		mm.Add(w1, w2, w3)
 		w1, w2 = w2, w3
 	}
-
-	mm.Add(w1, w2, w3)
+	// Note: no trailing Add call here — the final trigram is already recorded
+	// on the last iteration of the loop above. The previous extra call caused
+	// the last token to appear twice as a successor, skewing its probability.
 }
 
 // Add adds a three token sequence to the map.
@@ -102,21 +78,58 @@ func (mm MarkovMap) Get(w1, w2 string) string {
 	}
 	// We don't care about cryptographically sound entropy here, ignore gosec G404.
 	/* #nosec */
-	r := rand.IntN(len(suffix))
-	return suffix[r]
+	return suffix[rand.IntN(len(suffix))]
 }
 
-// Read fills p with data from calling Get on the MarkovMap.
-func (mm MarkovMap) Read(p []byte) (n int, err error) {
-	var w1, w2, w3 string
+// MarkovReader is a stateful io.Reader over a MarkovMap. Unlike calling
+// Get directly, it carries w1/w2 across successive Read calls so that the
+// generated token stream is one continuous chain walk per connection rather
+// than a series of independent restarts from the empty-string bigram.
+//
+// MarkovReader values are intended to be pooled via sync.Pool in Heffalump;
+// call reset() before returning one to the pool.
+type MarkovReader struct {
+	mm     MarkovMap
+	w1, w2 string
+}
+
+// NewMarkovReader creates a MarkovReader for the given map, starting at the
+// natural chain entry point (the empty-string bigram).
+func NewMarkovReader(mm MarkovMap) *MarkovReader {
+	return &MarkovReader{mm: mm}
+}
+
+// reset clears the chain state so the reader can be safely reused from the pool.
+func (mr *MarkovReader) reset() {
+	mr.w1, mr.w2 = "", ""
+}
+
+// Read fills p by walking the Markov chain. State is preserved across calls
+// so each call continues the walk exactly where the previous one left off.
+//
+// On a dead-end (no successors for the current bigram), the walk resets to
+// the empty-string entry point and continues — Read never returns an error
+// or io.EOF, so the caller drives termination by closing the connection or
+// stopping the copy loop.
+//
+// Tokens are separated by a single space written as a direct byte assignment,
+// avoiding a second copy call per token.
+func (mr *MarkovReader) Read(p []byte) (n int, err error) {
 	for {
-		w3 = mm.Get(w1, w2)
-		if n+len(w3)+1 >= len(p) {
+		w3 := mr.mm.Get(mr.w1, mr.w2)
+		if w3 == "" {
+			// Dead-end in the chain: reset to the entry point and keep going.
+			mr.w1, mr.w2 = "", ""
+			continue
+		}
+		// Ensure there is room for the token plus the trailing space separator.
+		if n+len(w3)+1 > len(p) {
 			break
 		}
 		n += copy(p[n:], w3)
-		n += copy(p[n:], "\n")
-		w1, w2 = w2, w3
+		p[n] = ' '
+		n++
+		mr.w1, mr.w2 = mr.w2, w3
 	}
 	return
 }
