@@ -21,6 +21,7 @@ type ChunkPool struct {
 	chunks    [][]byte
 	mu        []sync.RWMutex
 	idx       atomic.Uint64
+	count     uint64 // len(chunks) as uint64; keeps CopyChunk arithmetic in uint64 space
 	mm        MarkovMap
 	ChunkSize int // exported so WriteHell can size its copy buffer
 }
@@ -44,6 +45,7 @@ func NewChunkPool(poolSizeMB, chunkSizeKB, refillRateKbps int, mm MarkovMap) *Ch
 	p := &ChunkPool{
 		chunks:    make([][]byte, count),
 		mu:        make([]sync.RWMutex, count),
+		count:     uint64(count),
 		mm:        mm,
 		ChunkSize: chunkSize,
 	}
@@ -72,10 +74,13 @@ func (p *ChunkPool) generate() []byte {
 }
 
 // CopyChunk copies the next chunk in round-robin order into dst and returns
-// the number of bytes copied. The copy releases the read lock before
-// returning, so the refill goroutine is never blocked by a slow writer.
+// the number of bytes copied. The modulo uses the pre-stored uint64 count to
+// keep the arithmetic entirely in uint64 space — avoiding the integer overflow
+// conversion that would otherwise be flagged by static analysis (G115/CWE-190).
+// The copy releases the read lock before returning, so the refill goroutine is
+// never blocked by a slow writer.
 func (p *ChunkPool) CopyChunk(dst []byte) int {
-	i := int(p.idx.Add(1) % uint64(len(p.chunks)))
+	i := p.idx.Add(1) % p.count
 	p.mu[i].RLock()
 	n := copy(dst, p.chunks[i])
 	p.mu[i].RUnlock()
