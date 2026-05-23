@@ -29,8 +29,45 @@ makerobots = true
 paths = ["wp-login.php", "wp-login"]
 
 [performance]
-restrict_concurrency = false
+# Maximum number of concurrent connections.
+# Set to 0 to use the fasthttp default (262144).
+# WARNING: setting this to 0 on a low-resource server can exhaust memory and
+# OOM the process — each trapped connection holds a 256KB buffer for the full
+# duration of the stream. Size this according to your available RAM.
 max_workers = 256
+
+# Per-connection write rate cap in KB/s. This is the primary CPU protection
+# knob on constrained hardware — lower values mean the Markov chain (or chunk
+# pool) runs more slowly per connection. 0 = unlimited.
+# Recommended: 64 for a router/SBC, 256–1024 for a server.
+baseline_rate_kbps = 0
+
+# Hard ceiling on total outbound bandwidth across ALL connections combined,
+# in KB/s. 0 = unlimited.
+# WARNING: setting this to 0 on a metered or low-bandwidth host can exhaust
+# your outbound allowance — at full speed HellPot can push 10+ MB/s per
+# connection. Recommended: set to ~80% of your available uplink.
+max_total_kbps = 0
+
+[performance.chunks]
+# Pre-generates a pool of Markov text at startup so connections serve from
+# memory (memcpy) instead of generating on the fly. Dramatically reduces
+# per-connection CPU cost — highly recommended for ARM and constrained hardware.
+# Set to 0 to disable (original on-the-fly generation behavior).
+# 16MB is comfortable on a router; 64–128MB suits a server.
+pool_size_mb = 0
+
+# The following two settings are optional. Sensible defaults are derived
+# automatically from pool_size_mb and max_total_kbps if not set.
+
+# Size of each pre-generated chunk in KB. Derived from pool_size_mb if unset:
+#   ≤32MB pool  → 64KB   ≤128MB pool → 128KB   >128MB pool → 256KB
+# chunk_size_kb = 64
+
+# Rate at which the background goroutine regenerates chunks, in KB/s.
+# Derived as 10% of max_total_kbps (floor 128, ceiling 4096) if unset.
+# Lower values use less background CPU.
+# refill_rate_kbps = 256
 
 [deception]
 server_name = "nginx"
