@@ -17,6 +17,7 @@ var (
 	logFile        io.Writer
 	logDir         string
 	logger         zerolog.Logger
+	loggerReady    bool // set to true by StartLogger; guards GetLogger against pre-init calls
 )
 
 func prepLogDir() {
@@ -65,11 +66,17 @@ func StartLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
 	}
 
 	logger = zerolog.New(logWriter).With().Timestamp().Logger()
+	loggerReady = true
 	return logger
 }
 
 // GetLogger retrieves our global logger object.
+// If called before StartLogger, it returns a stderr fallback logger and logs a
+// warning rather than silently returning a zero-value logger that may drop messages.
 func GetLogger() *zerolog.Logger {
-	// future logic here
+	if !loggerReady {
+		fb := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr}).With().Timestamp().Logger()
+		return &fb
+	}
 	return &logger
 }
