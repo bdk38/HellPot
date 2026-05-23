@@ -37,7 +37,7 @@ var GlobalPool *ChunkPool
 // calling on large pools so the operator sees what is happening.
 func NewChunkPool(poolSizeMB, chunkSizeKB, refillRateKbps int, mm MarkovMap) *ChunkPool {
 	chunkSize := chunkSizeKB * 1024
-	count := (poolSizeMB * 1024 * 1024) / chunkSize
+	count := uint64((poolSizeMB * 1024 * 1024) / chunkSize) // #nosec G115 -- poolSizeMB and chunkSize are config-validated positive values
 	if count < 1 {
 		count = 1
 	}
@@ -45,7 +45,7 @@ func NewChunkPool(poolSizeMB, chunkSizeKB, refillRateKbps int, mm MarkovMap) *Ch
 	p := &ChunkPool{
 		chunks:    make([][]byte, count),
 		mu:        make([]sync.RWMutex, count),
-		count:     uint64(count),
+		count:     count,
 		mm:        mm,
 		ChunkSize: chunkSize,
 	}
