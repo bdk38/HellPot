@@ -27,11 +27,15 @@ func prepLogDir() {
 	_ = os.MkdirAll(logDir, 0750)
 }
 
-// StartLogger instantiates an instance of our zerolog loggger so we can hook it in our main package.
+// StartLogger instantiates an instance of our zerolog logger so we can hook it in our main package.
 // While this does return a logger, it should not be used for additional retrievals of the logger. Use GetLogger().
 func StartLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
-	logFileName := "HellPot"
+	prefix := snek.String("logger.log_file_prefix")
+	if prefix == "" {
+		prefix = "hellpot"
+	}
 
+	logFileName := prefix
 	if snek.Bool("logger.use_date_filename") {
 		tn := strings.ReplaceAll(time.Now().Format(time.RFC822), " ", "_")
 		tn = strings.ReplaceAll(tn, ":", "-")
