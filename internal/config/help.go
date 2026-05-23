@@ -2,28 +2,25 @@ package config
 
 import (
 	"io"
-	"math"
 	"os"
 	"strings"
-
-	"golang.org/x/term"
 )
 
 type help struct {
 	title, version string
-	usage          map[int][]string
+	usage          [][]string
 	out            io.Writer
 }
 
 var CLI = help{
 	title:   Title,
 	version: Version,
-	usage: map[int][]string{
-		0: {0: "--config", 1: "</path/to/file>", 2: "Specify config file path"},
-		1: {0: "--nocolor", 1: "disable color and banner"},
-		2: {0: "--banner", 1: "show banner + version and exit"},
-		3: {0: "--genconfig", 1: "Generate default config.toml in current directory and exit"},
-		4: {0: "--help", 1: "show this help and exit"},
+	usage: [][]string{
+		{"--config", "</path/to/file>", "Specify config file path"},
+		{"--nocolor", "disable color and banner"},
+		{"--banner", "show banner + version and exit"},
+		{"--genconfig", "Generate default config.toml in current directory and exit"},
+		{"--help", "show this help and exit"},
 	},
 	out: os.Stdout,
 }
@@ -63,10 +60,6 @@ func (cli help) lb(n int) {
 }
 
 func (cli help) printUsage() {
-	fd := os.Stdout.Fd()
-	if fd > uintptr(math.MaxInt) || !term.IsTerminal(int(fd)) {
-		os.Exit(1)
-	}
 	cli.header()
 
 	for n := 0; n < len(cli.usage); n++ {
