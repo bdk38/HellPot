@@ -86,10 +86,9 @@ func Serve() error {
 	log = config.GetLogger()
 
 	// Resolve the worker count before building the server config.
-	if !config.RestrictConcurrency {
-		config.MaxWorkers = fasthttp.DefaultConcurrency
-	}
-
+if config.MaxWorkers <= 0 {
+    config.MaxWorkers = fasthttp.DefaultConcurrency
+}
 	// Pre-lowercase the UA blacklist once at startup so the hot path can
 	// compare against a single lowercased UA string without allocating
 	// per-entry ToLower conversions on every request.
