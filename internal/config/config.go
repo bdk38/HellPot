@@ -46,14 +46,19 @@ var (
 
 // Init will initialize our toml configuration engine and define our default configuration values.
 func Init() {
-	 argParse()
+	argParse()
+
+	// GenConfig is set by --genconfig. gen() writes the embedded default_config.toml
+	// to disk and exits. It must be checked before we attempt to find or load a config
+	// file, since the intent is to produce one rather than consume one.
+	if GenConfig {
+		gen("")
+	}
 
 	if customconfig {
 		associateExportedVariables()
 		return
 	}
-
-	setDefaults()
 
 	chosen := findConfigPath()
 	if chosen == "" {
@@ -100,10 +105,8 @@ func findConfigPath() string {
 
 	// 3. Current working directory
 	pwd, _ := os.Getwd()
-	for _, p := range []string{"./config.toml", filepath.Join(pwd, "config.toml")} {
-		if _, err := os.Stat(p); err == nil {
-			return p
-		}
+	if _, err := os.Stat(filepath.Join(pwd, "config.toml")); err == nil {
+		return filepath.Join(pwd, "config.toml")
 	}
 
 	return ""
