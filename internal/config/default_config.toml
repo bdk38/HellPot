@@ -6,7 +6,13 @@ trace = false
 nocolor = false
 use_date_filename = true
 docker_logging = false
-console_time_format = "3:04PM"
+# Log directory. Leave empty to use the platform default (~/.local/share/HellPot/logs on Linux/macOS).
+directory = ""
+# Prefix for the log file name. A datestamp is appended when use_date_filename is true.
+# Example: "hellpot" produces hellpot_02_Jan_06_15-04_MST.log
+log_file_prefix = "hellpot"
+# Time format for console output. Uses Go time format syntax (reference time: Mon Jan 2 15:04:05 MST 2006).
+console_time_format = "15:04:05"
 
 [http]
 use_unix_socket = false
