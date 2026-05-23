@@ -85,10 +85,15 @@ func getSrv(r *router.Router) fasthttp.Server {
 func Serve() error {
 	log = config.GetLogger()
 
-	// Resolve the worker count before building the server config.
-if config.MaxWorkers <= 0 {
-    config.MaxWorkers = fasthttp.DefaultConcurrency
-}
+	// Resolve the worker count before building the server.
+	// A configured value of 0 means unlimited — fasthttp's default concurrency
+	// (262144) is used. WARNING: unlimited concurrency on a low-resource server
+	// can exhaust memory; each trapped connection holds a 256KB buffer for the
+	// full duration of the stream. Size max_workers to your available RAM.
+	if config.MaxWorkers <= 0 {
+		config.MaxWorkers = fasthttp.DefaultConcurrency
+	}
+
 	// Pre-lowercase the UA blacklist once at startup so the hot path can
 	// compare against a single lowercased UA string without allocating
 	// per-entry ToLower conversions on every request.
