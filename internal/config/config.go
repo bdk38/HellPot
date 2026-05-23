@@ -142,7 +142,6 @@ func processOpts() {
 		"http.bind_addr":             &HTTPBind,
 		"http.bind_port":             &HTTPPort,
 		"http.real_ip_header":        &HeaderName,
-		"logger.directory":           &logDir,
 		"logger.console_time_format": &ConsoleTimeFormat,
 		"deception.server_name":      &FakeServerName,
 	}
@@ -182,15 +181,21 @@ func processOpts() {
 }
 
 func associateExportedVariables() {
-	// Load environment variables (HELLPOT_*)
+	// Load environment variables with prefix HELLPOT_.
+	// Key mapping convention: a single underscore becomes a section separator (.)
+	// and a double underscore becomes a literal underscore within a key name.
+	// Examples:
+	//   HELLPOT_HTTP_BIND_PORT        → http.bind_port
+	//   HELLPOT_HTTP_BIND__ADDR       → http.bind_addr   (__ preserves _ in bind_addr)
+	//   HELLPOT_HTTP_REAL__IP__HEADER → http.real_ip_header
 	_ = snek.Load(env.Provider(".", env.Opt{
 		Prefix: "HELLPOT_",
 		TransformFunc: func(s, v string) (string, any) {
 			s = strings.TrimPrefix(s, "HELLPOT_")
 			s = strings.ToLower(s)
-			s = strings.ReplaceAll(s, "__", " ")
-			s = strings.ReplaceAll(s, "_", ".")
-			s = strings.ReplaceAll(s, " ", "_")
+			s = strings.ReplaceAll(s, "__", " ") // protect literal underscores
+			s = strings.ReplaceAll(s, "_", ".")  // single _ → section separator
+			s = strings.ReplaceAll(s, " ", "_")  // restore protected underscores
 			return s, v
 		},
 	}), nil)
@@ -200,12 +205,13 @@ func associateExportedVariables() {
 		NoColor = true
 	}
 
-	if UseUnixSocket {
-		UnixSocketPath = snek.String("http.unix_socket_path")
-		parsedPermissions, err := strconv.ParseUint(snek.String("http.unix_socket_permissions"), 8, 32)
-		if err == nil {
-			UnixSocketPermissions = uint32(parsedPermissions)
-		}
+	// Always load the unix socket settings regardless of UseUnixSocket so that
+	// a config-file change from false→true is honoured on restart without also
+	// requiring an env-var re-export, and so that validation code can inspect
+	// the path even before deciding whether sockets are in use.
+	UnixSocketPath = snek.String("http.unix_socket_path")
+	if perm, err := strconv.ParseUint(snek.String("http.unix_socket_permissions"), 8, 32); err == nil {
+		UnixSocketPermissions = uint32(perm)
 	}
 
 	// === CLI flag overrides (flags always win over config + env) ===
