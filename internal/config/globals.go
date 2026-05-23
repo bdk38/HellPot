@@ -1,7 +1,7 @@
 package config
 
 // Title is the name of the application used throughout the configuration process.
-const Title = "hellpot"
+const Title = "HellPot"
 
 var Version = "0.7.0"
 
