@@ -3,7 +3,7 @@ package config
 // Title is the name of the application used throughout the configuration process.
 const Title = "HellPot"
 
-var Version = "0.6.0"
+var Version = "0.7.0"
 
 var (
 	// BannerOnly when toggled causes HellPot to only print the banner and version then exit.
@@ -54,8 +54,42 @@ var (
 
 // "performance"
 var (
-	RestrictConcurrency bool
-	MaxWorkers          int
+	// MaxWorkers is the maximum number of concurrent connections HellPot will handle.
+	// Set to 0 to use the fasthttp default (262144). WARNING: setting this to 0 on a
+	// low-resource server can exhaust memory and OOM the process — each trapped connection
+	// holds a 256KB buffer for the duration of the stream. Size this to your available RAM.
+	MaxWorkers int
+
+	// BaselineRateKbps is the per-connection write rate cap in KB/s.
+	// This is the primary CPU protection knob on constrained hardware — lower values
+	// mean less Markov generation pressure per connection. 0 = unlimited.
+	BaselineRateKbps int
+
+	// MaxTotalKbps is the hard ceiling on total outbound bandwidth across all connections
+	// combined, in KB/s. This is the primary bandwidth protection knob. 0 = unlimited.
+	// WARNING: setting this to 0 on a metered or low-bandwidth host can exhaust your
+	// outbound allowance — at full speed HellPot can push 10+ MB/s per connection.
+	MaxTotalKbps int
+
+	// ChunkPoolSizeMB is the total RAM budget for the pre-generated Markov chunk pool,
+	// in MB. When set, HellPot pre-generates this much Markov text at startup and serves
+	// connections from memory (memcpy) instead of generating on the fly. This dramatically
+	// reduces per-connection CPU cost — recommended for ARM and other constrained hardware.
+	// Set to 0 to disable the pool and use the original on-the-fly generation behavior.
+	// 16MB is comfortable on a router; 64–128MB suits a server.
+	ChunkPoolSizeMB int
+
+	// ChunkSizeKB is the size of each pre-generated chunk in KB.
+	// Derived automatically from ChunkPoolSizeMB if not set:
+	//   ≤32MB pool  → 64KB chunks
+	//   ≤128MB pool → 128KB chunks
+	//   >128MB pool → 256KB chunks
+	ChunkSizeKB int
+
+	// ChunkRefillRateKbps is the rate at which the background goroutine regenerates
+	// consumed chunks, in KB/s. Derived as 10% of MaxTotalKbps (floor 128, ceil 4096)
+	// if not set. Lower values use less CPU for background regeneration.
+	ChunkRefillRateKbps int
 )
 
 // "deception"
