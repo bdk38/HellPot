@@ -7,7 +7,8 @@ nocolor = false
 use_date_filename = true
 directory = "/logs/"
 docker_logging = false
-console_time_format = "3:04PM"
+log_file_prefix = "hellpot"
+console_time_format = "15:04:05"
 
 [http]
 bind_addr = "0.0.0.0"
