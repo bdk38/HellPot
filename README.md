@@ -11,10 +11,6 @@
 
 </div>
 
-<div align="center">
-<img width="669" height="214" alt="hellpotv060" src="https://github.com/user-attachments/assets/e8c0a44e-e4e7-4a75-afb8-36ae938fe16b" />
-</div>
-
 # Summary
 
 ### Grave Consequences
@@ -23,8 +19,8 @@ HellPot is an endless HTTP honeypot that sends unruly bots straight to hell. It 
 
 ---
 
-**Latest release:** **[HellPot 0.6.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.6.0)** <br>
-*pre-built binaries for Linux, macOS, Windows, FreeBSD*
+**Latest release:** **[HellPot 0.7.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.0)** <br>
+*pre-built binaries for Linux and macOS
 
 ---
 
@@ -63,7 +59,7 @@ docker compose logs -f
 
 ### Quick Start (Binary)
 
-Download the latest release from [HellPot 0.6.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.6.0)
+Download the latest release from [HellPot 0.7.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.0)
 
 Generate default config:
 ```
@@ -92,3 +88,8 @@ make
 
 ---
 While these upgrades represent meaningful progress, the fork remains a work in progress and further enhancements are planned. Issues, feature requests, and pull requests are warmly welcomed.
+
+## Development Transparency
+
+Some features and fixes in HellPot were developed with the assistance of AI tools.  
+See [AI assistance in Development discussion](https://github.com/bdk38/HellPot/discussions/67) for full details on my process, background, and philosophy around transparency).
