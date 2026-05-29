@@ -13,11 +13,8 @@ jobs:
       contents: write
     strategy:
       matrix:
-        goos: [linux, windows, darwin, freebsd]
+        goos: [linux, darwin]
         goarch: [amd64, arm64]
-        exclude:
-          - goarch: arm64
-            goos: windows
     steps:
       - name: Check required secrets
         if: github.event_name != 'pull_request'
