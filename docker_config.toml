@@ -6,8 +6,10 @@ trace = false
 nocolor = false
 use_date_filename = true
 directory = "/logs/"
-docker_logging = false
 log_file_prefix = "hellpot"
+access_directory = "/logs/"
+access_prefix = "access"
+docker_logging = false
 console_time_format = "15:04:05"
 
 [http]
@@ -22,7 +24,6 @@ makerobots = true
 paths = ["wp-login.php", "wp-login"]
 
 [performance]
-restrict_concurrency = false
 max_workers = 256
 
 [deception]

@@ -90,9 +90,9 @@ func globalRateWait(n int64) {
 }
 
 // NewHeffalump instantiates a new Heffalump for markov generation and
-// buffer/io operations. It also initialises the chunk pool and global rate
-// limiter based on the current config, so it must be called after
-// config.Init() and config.StartLogger().
+// buffer/io operations. This is called during package init before config
+// is loaded, so it must NOT read any config values. Config-dependent setup
+// (chunk pool, rate limiter) is deferred to InitFromConfig().
 func NewHeffalump(mm MarkovMap, buffsize int) *Heffalump {
 	h := &Heffalump{
 		buffsize: buffsize,
@@ -105,6 +105,18 @@ func NewHeffalump(mm MarkovMap, buffsize int) *Heffalump {
 		return NewMarkovReader(mm)
 	}}
 
+	return h
+}
+
+// InitFromConfig completes Heffalump initialization using config values that
+// are not available during package init (pool, rate limiter). Must be called
+// after config.Init() and config.StartLogger(). Also re-fetches the logger
+// since the package-level var captured the pre-init fallback.
+func InitFromConfig() {
+	// The package-level log was set during package init before the real logger
+	// existed. Re-fetch now that StartLogger has been called.
+	log = config.GetLogger()
+
 	// Initialise chunk pool if configured.
 	if config.ChunkPoolSizeMB > 0 {
 		log.Info().
@@ -116,7 +128,7 @@ func NewHeffalump(mm MarkovMap, buffsize int) *Heffalump {
 			config.ChunkPoolSizeMB,
 			config.ChunkSizeKB,
 			config.ChunkRefillRateKbps,
-			mm,
+			DefaultHeffalump.mm,
 		)
 		chunkCount := (config.ChunkPoolSizeMB * 1024 * 1024) / (config.ChunkSizeKB * 1024)
 		log.Info().
@@ -132,9 +144,22 @@ func NewHeffalump(mm MarkovMap, buffsize int) *Heffalump {
 			Int("max_total_kbps", config.MaxTotalKbps).
 			Msg("Global rate limiter active")
 	}
-
-	return h
 }
+
+// writeSliceSize is the maximum number of bytes written per write-cycle when
+// rate limiting is active. Keeping this small (4 KB) ensures:
+//
+//  1. Smooth data flow — the client receives a steady trickle instead of
+//     long silence followed by large bursts.
+//  2. Prompt disconnect detection — a broken connection surfaces as a write
+//     error within one slice-interval rather than after an entire chunk's
+//     worth of sleeping.
+//  3. Accurate rate limiting — sleep durations are short and proportional,
+//     so the actual throughput closely tracks the configured rate.
+//
+// When rate limiting is disabled (BaselineRateKbps == 0 and MaxTotalKbps == 0),
+// full-chunk writes are used for maximum throughput.
+const writeSliceSize = 4096
 
 // WriteHell writes a continuous stream of Markov-generated text to bw.
 //
@@ -146,8 +171,9 @@ func NewHeffalump(mm MarkovMap, buffsize int) *Heffalump {
 // between writes to maintain the target rate. When MaxTotalKbps > 0, a global
 // token bucket further limits aggregate outbound bandwidth across all connections.
 //
-// The <html><body> prefix has been removed; the HTTP skeleton is written by the
-// router's trapSkeleton() before this function is called.
+// Data is written in small slices (writeSliceSize) when rate limiting is active,
+// ensuring prompt disconnect detection and smooth throughput. Without rate limiting,
+// full-buffer writes are used for maximum speed.
 func (h *Heffalump) WriteHell(bw *bufio.Writer) (int64, error) {
 	var n int64
 
@@ -157,9 +183,17 @@ func (h *Heffalump) WriteHell(bw *bufio.Writer) (int64, error) {
 		}
 	}()
 
+	// Write and flush the HTML prefix immediately so the client sees data
+	// before the first rate-limit sleep. Without the flush, the prefix sits
+	// in the bufio buffer for the entire first sleep interval.
 	if _, err := bw.WriteString("<html>\n<body>\n"); err != nil {
 		return n, err
 	}
+	if err := bw.Flush(); err != nil {
+		return n, err
+	}
+
+	rateLimited := config.BaselineRateKbps > 0 || globalRateBytes.Load() > 0
 
 	// When pool is enabled, allocate a copy buffer sized to one chunk and skip
 	// the MarkovReader entirely. When pool is disabled, use the sync.Pool buffers
@@ -201,24 +235,60 @@ func (h *Heffalump) WriteHell(bw *bufio.Writer) (int64, error) {
 		}
 
 		if nr > 0 {
-			// Per-connection rate limiting: sleep if we are ahead of the target rate.
-			if config.BaselineRateKbps > 0 {
-				bytesPerSec := int64(config.BaselineRateKbps) * 1024
-				expected := time.Duration(float64(time.Second) * float64(n+int64(nr)) / float64(bytesPerSec))
-				if sleep := expected - time.Since(writeStart); sleep > 0 {
-					time.Sleep(sleep)
+			// When rate limiting is active, drain the buffer in small slices
+			// so that (a) each sleep is short and proportional, (b) writes
+			// happen frequently enough to detect client disconnects promptly,
+			// and (c) the client receives a smooth trickle of data.
+			//
+			// When rate limiting is disabled, write the entire buffer at once
+			// for maximum throughput — there is nothing to sleep for, and
+			// disconnect detection is immediate on the next write anyway.
+			if rateLimited {
+				if err := h.writeSliced(bw, buf[:nr], &n, writeStart); err != nil {
+					return n, err
 				}
+			} else {
+				if _, ew := bw.Write(buf[:nr]); ew != nil {
+					return n, ew
+				}
+				n += int64(nr)
 			}
-
-			// Global rate limiting: wait for token budget before writing.
-			if globalRateBytes.Load() > 0 {
-				globalRateWait(int64(nr))
-			}
-
-			if _, ew := bw.Write(buf[:nr]); ew != nil {
-				return n, ew
-			}
-			n += int64(nr)
 		}
 	}
+}
+
+// writeSliced drains data in writeSliceSize increments, applying per-connection
+// and global rate limiting between each slice. total is updated in place so the
+// caller's byte counter stays current across slices.
+func (h *Heffalump) writeSliced(bw *bufio.Writer, data []byte, total *int64, writeStart time.Time) error {
+	written := 0
+	for written < len(data) {
+		end := written + writeSliceSize
+		if end > len(data) {
+			end = len(data)
+		}
+		sliceLen := int64(end - written)
+
+		// Per-connection rate limiting: sleep if we are ahead of the target rate.
+		if config.BaselineRateKbps > 0 {
+			bytesPerSec := int64(config.BaselineRateKbps) * 1024
+			expected := time.Duration(float64(time.Second) * float64(*total+int64(written)+sliceLen) / float64(bytesPerSec))
+			if sleep := expected - time.Since(writeStart); sleep > 0 {
+				time.Sleep(sleep)
+			}
+		}
+
+		// Global rate limiting: wait for token budget before writing.
+		if globalRateBytes.Load() > 0 {
+			globalRateWait(sliceLen)
+		}
+
+		if _, ew := bw.Write(data[written:end]); ew != nil {
+			*total += int64(written)
+			return ew
+		}
+		written = end
+	}
+	*total += int64(written)
+	return nil
 }

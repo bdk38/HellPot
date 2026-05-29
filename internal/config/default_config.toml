@@ -6,11 +6,17 @@ trace = false
 nocolor = false
 use_date_filename = true
 docker_logging = false
-# Log directory. Leave empty to use the platform default (~/.local/share/HellPot/logs on Linux/macOS).
+# Log directory for system log (startup, config, errors).
+# Leave empty to use the platform default (~/.local/share/HellPot/logs on Linux/macOS).
 directory = ""
-# Prefix for the log file name. A datestamp is appended when use_date_filename is true.
+# Prefix for the system log file name. A datestamp is appended when use_date_filename is true.
 # Example: "hellpot" produces hellpot_02_Jan_06_15-04_MST.log
 log_file_prefix = "hellpot"
+# Directory for the access log (client connection events).
+# Leave empty to use the same directory as the system log.
+access_directory = ""
+# Prefix for the access log file name.
+access_prefix = "access"
 # Time format for console output. Uses Go time format syntax (reference time: Mon Jan 2 15:04:05 MST 2006).
 console_time_format = "15:04:05"
 

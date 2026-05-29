@@ -21,6 +21,7 @@ type ChunkPool struct {
 	chunks    [][]byte
 	mu        []sync.RWMutex
 	idx       atomic.Uint64
+	count     uint64 // len(chunks) as uint64; keeps CopyChunk arithmetic in uint64 space
 	mm        MarkovMap
 	ChunkSize int // exported so WriteHell can size its copy buffer
 }
@@ -36,7 +37,7 @@ var GlobalPool *ChunkPool
 // calling on large pools so the operator sees what is happening.
 func NewChunkPool(poolSizeMB, chunkSizeKB, refillRateKbps int, mm MarkovMap) *ChunkPool {
 	chunkSize := chunkSizeKB * 1024
-	count := (poolSizeMB * 1024 * 1024) / chunkSize
+	count := uint64((poolSizeMB * 1024 * 1024) / chunkSize) // #nosec G115 -- poolSizeMB and chunkSize are config-validated positive values
 	if count < 1 {
 		count = 1
 	}
@@ -44,6 +45,7 @@ func NewChunkPool(poolSizeMB, chunkSizeKB, refillRateKbps int, mm MarkovMap) *Ch
 	p := &ChunkPool{
 		chunks:    make([][]byte, count),
 		mu:        make([]sync.RWMutex, count),
+		count:     count,
 		mm:        mm,
 		ChunkSize: chunkSize,
 	}
@@ -57,6 +59,12 @@ func NewChunkPool(poolSizeMB, chunkSizeKB, refillRateKbps int, mm MarkovMap) *Ch
 }
 
 // generate produces one full chunk of Markov text.
+//
+// The loop terminates when the buffer is full OR when Read returns 0 bytes
+// (the remaining space is too small for any word + separator). A chunk that
+// is a few bytes short is functionally identical to a perfectly full one —
+// bots cannot tell the difference — so we do not spin trying to find a
+// word that fits the last 1-2 bytes.
 func (p *ChunkPool) generate() []byte {
 	buf := make([]byte, p.ChunkSize)
 	mr := NewMarkovReader(p.mm)
@@ -64,7 +72,7 @@ func (p *ChunkPool) generate() []byte {
 	for total < p.ChunkSize {
 		n, err := mr.Read(buf[total:])
 		total += n
-		if err != nil || total >= p.ChunkSize {
+		if n == 0 || err != nil || total >= p.ChunkSize {
 			break
 		}
 	}
@@ -72,10 +80,13 @@ func (p *ChunkPool) generate() []byte {
 }
 
 // CopyChunk copies the next chunk in round-robin order into dst and returns
-// the number of bytes copied. The copy releases the read lock before
-// returning, so the refill goroutine is never blocked by a slow writer.
+// the number of bytes copied. The modulo uses the pre-stored uint64 count to
+// keep the arithmetic entirely in uint64 space — avoiding the integer overflow
+// conversion that would otherwise be flagged by static analysis (G115/CWE-190).
+// The copy releases the read lock before returning, so the refill goroutine is
+// never blocked by a slow writer.
 func (p *ChunkPool) CopyChunk(dst []byte) int {
-	i := int(p.idx.Add(1) % uint64(len(p.chunks)))
+	i := p.idx.Add(1) % p.count
 	p.mu[i].RLock()
 	n := copy(dst, p.chunks[i])
 	p.mu[i].RUnlock()

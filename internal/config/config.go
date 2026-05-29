@@ -143,6 +143,8 @@ func processOpts() {
 		"http.bind_port":             &HTTPPort,
 		"http.real_ip_header":        &HeaderName,
 		"logger.console_time_format": &ConsoleTimeFormat,
+		"logger.access_directory":    &AccessLogDirectory,
+		"logger.access_prefix":       &AccessLogPrefix,
 		"deception.server_name":      &FakeServerName,
 	}
 	// string slice options and their exported variables
@@ -152,22 +154,22 @@ func processOpts() {
 	}
 	// bool options and their exported variables
 	boolOpt := map[string]*bool{
-		"http.use_unix_socket":  &UseUnixSocket,
-		"logger.debug":         &Debug,
-		"logger.trace":         &Trace,
-		"logger.nocolor":       &NoColor,
+		"http.use_unix_socket":   &UseUnixSocket,
+		"logger.debug":          &Debug,
+		"logger.trace":          &Trace,
+		"logger.nocolor":        &NoColor,
 		"logger.docker_logging": &DockerLogging,
 		"http.router.makerobots": &MakeRobots,
 		"http.router.catchall":   &CatchAll,
 	}
 	// integer options and their exported variables
 	intOpt := map[string]*int{
-		"performance.max_workers":              &MaxWorkers,
-		"performance.baseline_rate_kbps":       &BaselineRateKbps,
-		"performance.max_total_kbps":           &MaxTotalKbps,
-		"performance.chunks.pool_size_mb":      &ChunkPoolSizeMB,
-		"performance.chunks.chunk_size_kb":     &ChunkSizeKB,
-		"performance.chunks.refill_rate_kbps":  &ChunkRefillRateKbps,
+		"performance.max_workers":             &MaxWorkers,
+		"performance.baseline_rate_kbps":      &BaselineRateKbps,
+		"performance.max_total_kbps":          &MaxTotalKbps,
+		"performance.chunks.pool_size_mb":     &ChunkPoolSizeMB,
+		"performance.chunks.chunk_size_kb":    &ChunkSizeKB,
+		"performance.chunks.refill_rate_kbps": &ChunkRefillRateKbps,
 	}
 
 	for key, opt := range stringOpt {

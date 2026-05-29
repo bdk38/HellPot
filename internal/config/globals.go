@@ -1,7 +1,7 @@
 package config
 
 // Title is the name of the application used throughout the configuration process.
-const Title = "hellpot"
+const Title = "HellPot"
 
 var Version = "0.7.0"
 
@@ -90,6 +90,17 @@ var (
 	// consumed chunks, in KB/s. Derived as 10% of MaxTotalKbps (floor 128, ceil 4096)
 	// if not set. Lower values use less CPU for background regeneration.
 	ChunkRefillRateKbps int
+)
+
+// "logger" — access log
+var (
+	// AccessLogDirectory is the directory for the access log (client connection events).
+	// Defaults to the same directory as the system log if empty.
+	AccessLogDirectory string
+
+	// AccessLogPrefix is the filename prefix for the access log.
+	// A datestamp is appended when use_date_filename is true.
+	AccessLogPrefix string
 )
 
 // "deception"
