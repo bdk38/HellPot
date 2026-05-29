@@ -23,18 +23,23 @@ func initRobots() {
 }
 
 func robotsTXT(ctx *fasthttp.RequestCtx) {
-	slog := log.With().
+	slog := alog.With().
 		Str("USERAGENT", string(ctx.UserAgent())).
 		Str("REMOTE_ADDR", getRealRemote(ctx)).
 		Str("URL", string(ctx.RequestURI())).Logger()
 
 	ctx.SetContentType("text/plain; charset=utf-8")
 
-	slog.Debug().
+	slog.Log().
 		Strs("PATHS", config.Paths).
 		Msg("SERVE_ROBOTS")
 
 	if _, err := ctx.Write(robotsBody); err != nil {
-		slog.Error().Err(err).Msg("SERVE_ROBOTS_ERROR")
+		slog.Log().Err(err).Msg("SERVE_ROBOTS_ERROR")
+		// Surface write errors in the system log so they are visible
+		// alongside other operational errors.
+		log.Error().Err(err).
+			Str("REMOTE_ADDR", getRealRemote(ctx)).
+			Msg("SERVE_ROBOTS_ERROR")
 	}
 }

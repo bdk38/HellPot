@@ -59,6 +59,12 @@ func NewChunkPool(poolSizeMB, chunkSizeKB, refillRateKbps int, mm MarkovMap) *Ch
 }
 
 // generate produces one full chunk of Markov text.
+//
+// The loop terminates when the buffer is full OR when Read returns 0 bytes
+// (the remaining space is too small for any word + separator). A chunk that
+// is a few bytes short is functionally identical to a perfectly full one —
+// bots cannot tell the difference — so we do not spin trying to find a
+// word that fits the last 1-2 bytes.
 func (p *ChunkPool) generate() []byte {
 	buf := make([]byte, p.ChunkSize)
 	mr := NewMarkovReader(p.mm)
@@ -66,7 +72,7 @@ func (p *ChunkPool) generate() []byte {
 	for total < p.ChunkSize {
 		n, err := mr.Read(buf[total:])
 		total += n
-		if err != nil || total >= p.ChunkSize {
+		if n == 0 || err != nil || total >= p.ChunkSize {
 			break
 		}
 	}

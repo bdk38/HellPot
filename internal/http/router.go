@@ -15,7 +15,10 @@ import (
 	"github.com/bdk38/HellPot/internal/config"
 )
 
-var log *zerolog.Logger
+var (
+	log  *zerolog.Logger // system logger (startup, config, errors)
+	alog *zerolog.Logger // access logger (client connection events)
+)
 
 // getRealRemote returns the real remote address, preferring the configured
 // forwarded-IP header when present. The header value is validated with
@@ -84,6 +87,7 @@ func getSrv(r *router.Router) fasthttp.Server {
 // Serve registers all routes, builds the server, and begins listening.
 func Serve() error {
 	log = config.GetLogger()
+	alog = config.GetAccessLogger()
 
 	// Resolve the worker count before building the server.
 	// A configured value of 0 means unlimited — fasthttp's default concurrency
@@ -116,7 +120,7 @@ func Serve() error {
 		// blacklist check, and each []byte→string conversion allocates.
 		ua := string(ctx.UserAgent())
 
-		slog := log.With().
+		slog := alog.With().
 			Str("USERAGENT", ua).
 			Str("REMOTE_ADDR", remoteAddr).
 			Str("URL", string(ctx.RequestURI())).
@@ -128,7 +132,7 @@ func Serve() error {
 		uaLower := strings.ToLower(ua)
 		for _, denied := range loweredMatchers {
 			if strings.Contains(uaLower, denied) {
-				slog.Trace().Msg("IGNORED_UA")
+				slog.Log().Msg("IGNORED_UA")
 				ctx.Error("Not found", fasthttp.StatusNotFound)
 				return
 			}
@@ -142,7 +146,7 @@ func Serve() error {
 			slog = slog.With().Str("caller", path).Logger()
 		}
 
-		slog.Info().Msg("NEW")
+		slog.Log().Msg("NEW")
 
 		s := time.Now()
 		var n int64
@@ -152,10 +156,10 @@ func Serve() error {
 			wn, err := heffalump.DefaultHeffalump.WriteHell(bw)
 			n += wn
 			if err != nil {
-				slog.Trace().Err(err).Msg("END_ON_ERR")
+				slog.Log().Err(err).Msg("END_ON_ERR")
 			}
 
-			slog.Info().
+			slog.Log().
 				Int64("BYTES", n).
 				Dur("DURATION", time.Since(s)).
 				Msg("FINISH")
@@ -191,18 +195,33 @@ func Serve() error {
 	// standard scan or crawl probe.
 	denyHandler := func(ctx *fasthttp.RequestCtx) {
 		method := string(ctx.Method())
+		ua := string(ctx.UserAgent())
+		remote := getRealRemote(ctx)
+		url := string(ctx.RequestURI())
 
-		e := log.Warn().
-			Str("METHOD", method).
-			Str("USERAGENT", string(ctx.UserAgent())).
-			Str("REMOTE_ADDR", getRealRemote(ctx)).
-			Str("URL", string(ctx.RequestURI()))
-
+		var msg string
 		if method == "CONNECT" {
-			e.Msg("PROXY_ABUSE_ATTEMPT")
+			msg = "PROXY_ABUSE_ATTEMPT"
 		} else {
-			e.Msg("DENIED_METHOD")
+			msg = "DENIED_METHOD"
 		}
+
+		// Access log — connection record (no level).
+		alog.Log().
+			Str("METHOD", method).
+			Str("USERAGENT", ua).
+			Str("REMOTE_ADDR", remote).
+			Str("URL", url).
+			Msg(msg)
+
+		// System log — operational warning so admins see denied/abuse
+		// attempts without cross-referencing the access log.
+		log.Warn().
+			Str("METHOD", method).
+			Str("USERAGENT", ua).
+			Str("REMOTE_ADDR", remote).
+			Str("URL", url).
+			Msg(msg)
 
 		ctx.Error("Not found", fasthttp.StatusNotFound)
 	}

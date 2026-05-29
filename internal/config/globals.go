@@ -92,6 +92,17 @@ var (
 	ChunkRefillRateKbps int
 )
 
+// "logger" — access log
+var (
+	// AccessLogDirectory is the directory for the access log (client connection events).
+	// Defaults to the same directory as the system log if empty.
+	AccessLogDirectory string
+
+	// AccessLogPrefix is the filename prefix for the access log.
+	// A datestamp is appended when use_date_filename is true.
+	AccessLogPrefix string
+)
+
 // "deception"
 var (
 	// FakeServerName is our configured value for the "Server: " response header when serving HTTP clients
