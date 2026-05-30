@@ -28,7 +28,7 @@ var (
 )
 
 func prepLogDir() {
-	logDir = snek.String("logger.directory")
+	logDir = Logger.Directory
 	if logDir == "" {
 		logDir = filepath.Join(home, ".local", "share", Title, "logs")
 	}
@@ -38,7 +38,7 @@ func prepLogDir() {
 // prepAccessLogDir resolves the access log directory from config.
 // Falls back to the system log directory if not explicitly configured.
 func prepAccessLogDir() {
-	accessLogDir = AccessLogDirectory
+	accessLogDir = Logger.AccessDirectory
 	if accessLogDir == "" {
 		// Default to the system log directory so a minimal config Just Works.
 		prepLogDir()
@@ -51,7 +51,7 @@ func prepAccessLogDir() {
 // appending a datestamp when use_date_filename is true.
 func buildLogFileName(prefix string) string {
 	name := prefix
-	if snek.Bool("logger.use_date_filename") {
+	if Logger.UseDateFilename {
 		tn := strings.ReplaceAll(time.Now().Format(time.RFC822), " ", "_")
 		tn = strings.ReplaceAll(tn, ":", "-")
 		name = name + "_" + tn
@@ -63,7 +63,7 @@ func buildLogFileName(prefix string) string {
 // While this does return a logger, it should not be used for additional retrievals
 // of the logger. Use GetLogger().
 func StartLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
-	prefix := snek.String("logger.log_file_prefix")
+	prefix := Logger.LogFilePrefix
 	if prefix == "" {
 		prefix = "hellpot"
 	}
@@ -89,7 +89,7 @@ func StartLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
 	var logWriter = logFile
 
 	if pretty {
-		logWriter = zerolog.MultiLevelWriter(zerolog.ConsoleWriter{TimeFormat: ConsoleTimeFormat, NoColor: NoColor, Out: os.Stdout}, logFile)
+		logWriter = zerolog.MultiLevelWriter(zerolog.ConsoleWriter{TimeFormat: Logger.ConsoleTimeFormat, NoColor: Logger.NoColor, Out: os.Stdout}, logFile)
 	}
 
 	logger = zerolog.New(logWriter).With().Timestamp().Logger()
@@ -101,7 +101,7 @@ func StartLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
 // The access logger omits the level field — callers use .Log() instead of
 // .Info()/.Debug()/etc. Console output suppresses the level column as well.
 func StartAccessLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
-	prefix := AccessLogPrefix
+	prefix := Logger.AccessPrefix
 	if prefix == "" {
 		prefix = "access"
 	}
@@ -128,8 +128,8 @@ func StartAccessLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
 
 	if pretty {
 		consoleWriter := zerolog.ConsoleWriter{
-			TimeFormat: ConsoleTimeFormat,
-			NoColor:    NoColor,
+			TimeFormat: Logger.ConsoleTimeFormat,
+			NoColor:    Logger.NoColor,
 			Out:        os.Stdout,
 			// Suppress the level column — access log events use .Log() (NoLevel)
 			// and the level field adds no value for connection records.

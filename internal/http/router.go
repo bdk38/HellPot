@@ -28,7 +28,7 @@ var (
 // the representation (canonical IPv6 form, no leading zeros, no injected
 // content).
 func getRealRemote(ctx *fasthttp.RequestCtx) string {
-	xrealip := strings.TrimSpace(string(ctx.Request.Header.Peek(config.HeaderName)))
+	xrealip := strings.TrimSpace(string(ctx.Request.Header.Peek(config.HTTP.RealIPHeader)))
 	if xrealip != "" {
 		if ip := net.ParseIP(xrealip); ip != nil {
 			return ip.String()
@@ -43,7 +43,7 @@ func getRealRemote(ctx *fasthttp.RequestCtx) string {
 func getSrv(r *router.Router) fasthttp.Server {
 	return fasthttp.Server{
 		// Server name sent in the Server response header.
-		Name: config.FakeServerName,
+		Name: config.Deception.ServerName,
 
 		// Cap the time allowed to read the full request including headers.
 		ReadTimeout: 5 * time.Second,
@@ -62,7 +62,7 @@ func getSrv(r *router.Router) fasthttp.Server {
 		// With keepalive disabled, each connection serves exactly one request.
 		MaxRequestsPerConn: 1,
 
-		Concurrency: config.MaxWorkers,
+		Concurrency: config.Perf.MaxWorkers,
 
 		// GetOnly has been removed. Method enforcement is now handled at the
 		// router level so that non-GET/HEAD attempts can be logged before
@@ -94,15 +94,15 @@ func Serve() error {
 	// (262144) is used. WARNING: unlimited concurrency on a low-resource server
 	// can exhaust memory; each trapped connection holds a 256KB buffer for the
 	// full duration of the stream. Size max_workers to your available RAM.
-	if config.MaxWorkers <= 0 {
-		config.MaxWorkers = fasthttp.DefaultConcurrency
+	if config.Perf.MaxWorkers <= 0 {
+		config.Perf.MaxWorkers = fasthttp.DefaultConcurrency
 	}
 
 	// Pre-lowercase the UA blacklist once at startup so the hot path can
 	// compare against a single lowercased UA string without allocating
 	// per-entry ToLower conversions on every request.
-	loweredMatchers := make([]string, len(config.UseragentBlacklistMatchers))
-	for i, m := range config.UseragentBlacklistMatchers {
+	loweredMatchers := make([]string, len(config.HTTP.UABlacklist))
+	for i, m := range config.HTTP.UABlacklist {
 		loweredMatchers[i] = strings.ToLower(m)
 	}
 
@@ -138,7 +138,7 @@ func Serve() error {
 			}
 		}
 
-		if config.Trace {
+		if config.Logger.Trace {
 			path, _ := ctx.UserValue("path").(string)
 			if path == "" {
 				path = "/"
@@ -236,12 +236,12 @@ func Serve() error {
 	r.NotFound = denyHandler
 
 	initRobots()
-	if config.MakeRobots && !config.CatchAll {
+	if config.HTTP.Router.MakeRobots && !config.HTTP.Router.CatchAll {
 		r.GET("/robots.txt", robotsTXT)
 	}
 
-	if !config.CatchAll {
-		for _, p := range config.Paths {
+	if !config.HTTP.Router.CatchAll {
+		for _, p := range config.HTTP.Router.Paths {
 			log.Trace().Str("caller", "router").Msgf("Add route: %s", p)
 			r.GET("/"+p, hellPotHandler)
 			r.HEAD("/"+p, headHandler)
@@ -255,16 +255,16 @@ func Serve() error {
 	srv := getSrv(r)
 
 	//goland:noinspection GoBoolExpressions
-	if !config.UseUnixSocket || runtime.GOOS == "windows" {
-		l := config.HTTPBind + ":" + config.HTTPPort
+	if !config.HTTP.UseUnixSocket || runtime.GOOS == "windows" {
+		l := config.HTTP.BindAddr + ":" + config.HTTP.BindPort
 		log.Info().Str("caller", l).Msg("Listening and serving HTTP...")
 		return srv.ListenAndServe(l)
 	}
 
-	if len(config.UnixSocketPath) < 1 {
+	if len(config.HTTP.UnixSocketPath) < 1 {
 		log.Fatal().Msg("unix_socket_path configuration directive appears to be empty")
 	}
 
-	log.Info().Str("caller", config.UnixSocketPath).Msg("Listening and serving HTTP...")
-	return listenOnUnixSocket(config.UnixSocketPath, r)
+	log.Info().Str("caller", config.HTTP.UnixSocketPath).Msg("Listening and serving HTTP...")
+	return listenOnUnixSocket(config.HTTP.UnixSocketPath, r)
 }

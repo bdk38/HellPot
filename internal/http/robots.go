@@ -5,7 +5,7 @@ import (
 	"github.com/valyala/fasthttp"
 )
 
-// robotsBody is built once at startup; config.Paths is fixed after init.
+// robotsBody is built once at startup; config.HTTP.Router.Paths is fixed after init.
 var robotsBody []byte
 
 // initRobots pre-builds the robots.txt response body.
@@ -13,7 +13,7 @@ var robotsBody []byte
 func initRobots() {
 	var b []byte
 	b = append(b, "User-agent: *\r\n"...)
-	for _, p := range config.Paths {
+	for _, p := range config.HTTP.Router.Paths {
 		b = append(b, "Disallow: /"...)
 		b = append(b, p...)
 		b = append(b, "\r\n"...)
@@ -31,7 +31,7 @@ func robotsTXT(ctx *fasthttp.RequestCtx) {
 	ctx.SetContentType("text/plain; charset=utf-8")
 
 	slog.Log().
-		Strs("PATHS", config.Paths).
+		Strs("PATHS", config.HTTP.Router.Paths).
 		Msg("SERVE_ROBOTS")
 
 	if _, err := ctx.Write(robotsBody); err != nil {
