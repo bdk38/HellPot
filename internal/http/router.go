@@ -15,10 +15,7 @@ import (
 	"github.com/bdk38/HellPot/internal/config"
 )
 
-var (
-	log  *zerolog.Logger // system logger (startup, config, errors)
-	alog *zerolog.Logger // access logger (client connection events)
-)
+var log *zerolog.Logger
 
 // getRealRemote returns the real remote address, preferring the configured
 // forwarded-IP header when present. The header value is validated with
@@ -28,7 +25,7 @@ var (
 // the representation (canonical IPv6 form, no leading zeros, no injected
 // content).
 func getRealRemote(ctx *fasthttp.RequestCtx) string {
-	xrealip := strings.TrimSpace(string(ctx.Request.Header.Peek(config.HeaderName)))
+	xrealip := strings.TrimSpace(string(ctx.Request.Header.Peek(config.HTTP.RealIPHeader)))
 	if xrealip != "" {
 		if ip := net.ParseIP(xrealip); ip != nil {
 			return ip.String()
@@ -43,7 +40,7 @@ func getRealRemote(ctx *fasthttp.RequestCtx) string {
 func getSrv(r *router.Router) fasthttp.Server {
 	return fasthttp.Server{
 		// Server name sent in the Server response header.
-		Name: config.FakeServerName,
+		Name: config.Deception.ServerName,
 
 		// Cap the time allowed to read the full request including headers.
 		ReadTimeout: 5 * time.Second,
@@ -62,7 +59,7 @@ func getSrv(r *router.Router) fasthttp.Server {
 		// With keepalive disabled, each connection serves exactly one request.
 		MaxRequestsPerConn: 1,
 
-		Concurrency: config.MaxWorkers,
+		Concurrency: config.Perf.MaxWorkers,
 
 		// GetOnly has been removed. Method enforcement is now handled at the
 		// router level so that non-GET/HEAD attempts can be logged before
@@ -87,22 +84,21 @@ func getSrv(r *router.Router) fasthttp.Server {
 // Serve registers all routes, builds the server, and begins listening.
 func Serve() error {
 	log = config.GetLogger()
-	alog = config.GetAccessLogger()
 
 	// Resolve the worker count before building the server.
 	// A configured value of 0 means unlimited — fasthttp's default concurrency
 	// (262144) is used. WARNING: unlimited concurrency on a low-resource server
 	// can exhaust memory; each trapped connection holds a 256KB buffer for the
 	// full duration of the stream. Size max_workers to your available RAM.
-	if config.MaxWorkers <= 0 {
-		config.MaxWorkers = fasthttp.DefaultConcurrency
+	if config.Perf.MaxWorkers <= 0 {
+		config.Perf.MaxWorkers = fasthttp.DefaultConcurrency
 	}
 
 	// Pre-lowercase the UA blacklist once at startup so the hot path can
 	// compare against a single lowercased UA string without allocating
 	// per-entry ToLower conversions on every request.
-	loweredMatchers := make([]string, len(config.UseragentBlacklistMatchers))
-	for i, m := range config.UseragentBlacklistMatchers {
+	loweredMatchers := make([]string, len(config.HTTP.UABlacklist))
+	for i, m := range config.HTTP.UABlacklist {
 		loweredMatchers[i] = strings.ToLower(m)
 	}
 
@@ -120,7 +116,7 @@ func Serve() error {
 		// blacklist check, and each []byte→string conversion allocates.
 		ua := string(ctx.UserAgent())
 
-		slog := alog.With().
+		slog := log.With().
 			Str("USERAGENT", ua).
 			Str("REMOTE_ADDR", remoteAddr).
 			Str("URL", string(ctx.RequestURI())).
@@ -132,13 +128,13 @@ func Serve() error {
 		uaLower := strings.ToLower(ua)
 		for _, denied := range loweredMatchers {
 			if strings.Contains(uaLower, denied) {
-				slog.Log().Msg("IGNORED_UA")
+				slog.Trace().Msg("IGNORED_UA")
 				ctx.Error("Not found", fasthttp.StatusNotFound)
 				return
 			}
 		}
 
-		if config.Trace {
+		if config.Logger.Trace {
 			path, _ := ctx.UserValue("path").(string)
 			if path == "" {
 				path = "/"
@@ -146,7 +142,7 @@ func Serve() error {
 			slog = slog.With().Str("caller", path).Logger()
 		}
 
-		slog.Log().Msg("NEW")
+		slog.Info().Msg("NEW")
 
 		s := time.Now()
 		var n int64
@@ -156,10 +152,10 @@ func Serve() error {
 			wn, err := heffalump.DefaultHeffalump.WriteHell(bw)
 			n += wn
 			if err != nil {
-				slog.Log().Err(err).Msg("END_ON_ERR")
+				slog.Trace().Err(err).Msg("END_ON_ERR")
 			}
 
-			slog.Log().
+			slog.Info().
 				Int64("BYTES", n).
 				Dur("DURATION", time.Since(s)).
 				Msg("FINISH")
@@ -195,33 +191,18 @@ func Serve() error {
 	// standard scan or crawl probe.
 	denyHandler := func(ctx *fasthttp.RequestCtx) {
 		method := string(ctx.Method())
-		ua := string(ctx.UserAgent())
-		remote := getRealRemote(ctx)
-		url := string(ctx.RequestURI())
 
-		var msg string
+		e := log.Warn().
+			Str("METHOD", method).
+			Str("USERAGENT", string(ctx.UserAgent())).
+			Str("REMOTE_ADDR", getRealRemote(ctx)).
+			Str("URL", string(ctx.RequestURI()))
+
 		if method == "CONNECT" {
-			msg = "PROXY_ABUSE_ATTEMPT"
+			e.Msg("PROXY_ABUSE_ATTEMPT")
 		} else {
-			msg = "DENIED_METHOD"
+			e.Msg("DENIED_METHOD")
 		}
-
-		// Access log — connection record (no level).
-		alog.Log().
-			Str("METHOD", method).
-			Str("USERAGENT", ua).
-			Str("REMOTE_ADDR", remote).
-			Str("URL", url).
-			Msg(msg)
-
-		// System log — operational warning so admins see denied/abuse
-		// attempts without cross-referencing the access log.
-		log.Warn().
-			Str("METHOD", method).
-			Str("USERAGENT", ua).
-			Str("REMOTE_ADDR", remote).
-			Str("URL", url).
-			Msg(msg)
 
 		ctx.Error("Not found", fasthttp.StatusNotFound)
 	}
@@ -236,12 +217,12 @@ func Serve() error {
 	r.NotFound = denyHandler
 
 	initRobots()
-	if config.MakeRobots && !config.CatchAll {
+	if config.HTTP.Router.MakeRobots && !config.HTTP.Router.CatchAll {
 		r.GET("/robots.txt", robotsTXT)
 	}
 
-	if !config.CatchAll {
-		for _, p := range config.Paths {
+	if !config.HTTP.Router.CatchAll {
+		for _, p := range config.HTTP.Router.Paths {
 			log.Trace().Str("caller", "router").Msgf("Add route: %s", p)
 			r.GET("/"+p, hellPotHandler)
 			r.HEAD("/"+p, headHandler)
@@ -255,16 +236,16 @@ func Serve() error {
 	srv := getSrv(r)
 
 	//goland:noinspection GoBoolExpressions
-	if !config.UseUnixSocket || runtime.GOOS == "windows" {
-		l := config.HTTPBind + ":" + config.HTTPPort
+	if !config.HTTP.UseUnixSocket || runtime.GOOS == "windows" {
+		l := config.HTTP.BindAddr + ":" + config.HTTP.BindPort
 		log.Info().Str("caller", l).Msg("Listening and serving HTTP...")
 		return srv.ListenAndServe(l)
 	}
 
-	if len(config.UnixSocketPath) < 1 {
+	if len(config.HTTP.UnixSocketPath) < 1 {
 		log.Fatal().Msg("unix_socket_path configuration directive appears to be empty")
 	}
 
-	log.Info().Str("caller", config.UnixSocketPath).Msg("Listening and serving HTTP...")
-	return listenOnUnixSocket(config.UnixSocketPath, r)
+	log.Info().Str("caller", config.HTTP.UnixSocketPath).Msg("Listening and serving HTTP...")
+	return listenOnUnixSocket(config.HTTP.UnixSocketPath, r)
 }

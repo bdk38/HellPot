@@ -13,7 +13,7 @@ import (
 	"github.com/rs/zerolog"
 
 	"github.com/knadh/koanf/parsers/toml/v2"
-	koanf "github.com/knadh/koanf/v2" // ← clean alias (no more confusing "viper")
+	koanf "github.com/knadh/koanf/v2" // <- clean alias (no more confusing "viper")
 )
 
 // generic vars
@@ -33,16 +33,6 @@ func init() {
 		println("WARNING: could not determine home directory")
 	}
 }
-
-// exported generic vars
-var (
-	// Trace is the value of our trace (extra verbose) on/off toggle as per the current configuration.
-	Trace bool
-	// Debug is the value of our debug (verbose) on/off toggle as per the current configuration.
-	Debug bool
-	// Filename returns the current location of our toml config file.
-	Filename string
-)
 
 // Init will initialize our toml configuration engine and define our default configuration values.
 func Init() {
@@ -137,53 +127,37 @@ func loadCustomConfig(path string) {
 }
 
 func processOpts() {
-	// string options and their exported variables
-	stringOpt := map[string]*string{
-		"http.bind_addr":             &HTTPBind,
-		"http.bind_port":             &HTTPPort,
-		"http.real_ip_header":        &HeaderName,
-		"logger.console_time_format": &ConsoleTimeFormat,
-		"logger.access_directory":    &AccessLogDirectory,
-		"logger.access_prefix":       &AccessLogPrefix,
-		"deception.server_name":      &FakeServerName,
-	}
-	// string slice options and their exported variables
-	strSliceOpt := map[string]*[]string{
-		"http.router.paths":            &Paths,
-		"http.uagent_string_blacklist": &UseragentBlacklistMatchers,
-	}
-	// bool options and their exported variables
-	boolOpt := map[string]*bool{
-		"http.use_unix_socket":   &UseUnixSocket,
-		"logger.debug":          &Debug,
-		"logger.trace":          &Trace,
-		"logger.nocolor":        &NoColor,
-		"logger.docker_logging": &DockerLogging,
-		"http.router.makerobots": &MakeRobots,
-		"http.router.catchall":   &CatchAll,
-	}
-	// integer options and their exported variables
-	intOpt := map[string]*int{
-		"performance.max_workers":             &MaxWorkers,
-		"performance.baseline_rate_kbps":      &BaselineRateKbps,
-		"performance.max_total_kbps":          &MaxTotalKbps,
-		"performance.chunks.pool_size_mb":     &ChunkPoolSizeMB,
-		"performance.chunks.chunk_size_kb":    &ChunkSizeKB,
-		"performance.chunks.refill_rate_kbps": &ChunkRefillRateKbps,
-	}
+	// -- HTTP -----------------------------------------------------------------
+	HTTP.BindAddr = snek.String("http.bind_addr")
+	HTTP.BindPort = snek.String("http.bind_port")
+	HTTP.RealIPHeader = snek.String("http.real_ip_header")
+	HTTP.UseUnixSocket = snek.Bool("http.use_unix_socket")
+	HTTP.UABlacklist = snek.Strings("http.uagent_string_blacklist")
 
-	for key, opt := range stringOpt {
-		*opt = snek.String(key)
-	}
-	for key, opt := range strSliceOpt {
-		*opt = snek.Strings(key)
-	}
-	for key, opt := range boolOpt {
-		*opt = snek.Bool(key)
-	}
-	for key, opt := range intOpt {
-		*opt = snek.Int(key)
-	}
+	HTTP.Router.CatchAll = snek.Bool("http.router.catchall")
+	HTTP.Router.MakeRobots = snek.Bool("http.router.makerobots")
+	HTTP.Router.Paths = snek.Strings("http.router.paths")
+
+	// -- Logger ---------------------------------------------------------------
+	Logger.Debug = snek.Bool("logger.debug")
+	Logger.Trace = snek.Bool("logger.trace")
+	Logger.NoColor = snek.Bool("logger.nocolor")
+	Logger.DockerLogging = snek.Bool("logger.docker_logging")
+	Logger.ConsoleTimeFormat = snek.String("logger.console_time_format")
+	Logger.AccessDirectory = snek.String("logger.access_directory")
+	Logger.AccessPrefix = snek.String("logger.access_prefix")
+
+	// -- Performance ----------------------------------------------------------
+	Perf.MaxWorkers = snek.Int("performance.max_workers")
+	Perf.BaselineRateKbps = snek.Int("performance.baseline_rate_kbps")
+	Perf.MaxTotalKbps = snek.Int("performance.max_total_kbps")
+
+	Perf.Chunks.PoolSizeMB = snek.Int("performance.chunks.pool_size_mb")
+	Perf.Chunks.ChunkSizeKB = snek.Int("performance.chunks.chunk_size_kb")
+	Perf.Chunks.RefillRateKbps = snek.Int("performance.chunks.refill_rate_kbps")
+
+	// -- Deception ------------------------------------------------------------
+	Deception.ServerName = snek.String("deception.server_name")
 }
 
 func associateExportedVariables() {
@@ -191,16 +165,16 @@ func associateExportedVariables() {
 	// Key mapping convention: a single underscore becomes a section separator (.)
 	// and a double underscore becomes a literal underscore within a key name.
 	// Examples:
-	//   HELLPOT_HTTP_BIND_PORT        → http.bind_port
-	//   HELLPOT_HTTP_BIND__ADDR       → http.bind_addr   (__ preserves _ in bind_addr)
-	//   HELLPOT_HTTP_REAL__IP__HEADER → http.real_ip_header
+	//   HELLPOT_HTTP_BIND_PORT        -> http.bind_port
+	//   HELLPOT_HTTP_BIND__ADDR       -> http.bind_addr   (__ preserves _ in bind_addr)
+	//   HELLPOT_HTTP_REAL__IP__HEADER -> http.real_ip_header
 	_ = snek.Load(env.Provider(".", env.Opt{
 		Prefix: "HELLPOT_",
 		TransformFunc: func(s, v string) (string, any) {
 			s = strings.TrimPrefix(s, "HELLPOT_")
 			s = strings.ToLower(s)
 			s = strings.ReplaceAll(s, "__", " ") // protect literal underscores
-			s = strings.ReplaceAll(s, "_", ".")  // single _ → section separator
+			s = strings.ReplaceAll(s, "_", ".")  // single _ -> section separator
 			s = strings.ReplaceAll(s, " ", "_")  // restore protected underscores
 			return s, v
 		},
@@ -208,28 +182,28 @@ func associateExportedVariables() {
 	processOpts()
 
 	if noColorForce {
-		NoColor = true
+		Logger.NoColor = true
 	}
 
-	// Always load the unix socket settings regardless of UseUnixSocket so that
-	// a config-file change from false→true is honoured on restart without also
-	// requiring an env-var re-export, and so that validation code can inspect
-	// the path even before deciding whether sockets are in use.
-	UnixSocketPath = snek.String("http.unix_socket_path")
+	// Unix socket path and permissions are loaded regardless of UseUnixSocket
+	// so that a config-file change from false->true is honoured on restart
+	// without also requiring an env-var re-export, and so that validation code
+	// can inspect the path even before deciding whether sockets are in use.
+	HTTP.UnixSocketPath = snek.String("http.unix_socket_path")
 	if perm, err := strconv.ParseUint(snek.String("http.unix_socket_permissions"), 8, 32); err == nil {
-		UnixSocketPermissions = uint32(perm)
+		HTTP.UnixSocketPermissions = uint32(perm)
 	}
 
 	// === CLI flag overrides (flags always win over config + env) ===
 	// We do this last so --debug / --trace take precedence.
-	if forceTrace || Trace {
-		Trace = true
+	if forceTrace || Logger.Trace {
+		Logger.Trace = true
 		zerolog.SetGlobalLevel(zerolog.TraceLevel)
-	} else if forceDebug || Debug {
-		Debug = true
+	} else if forceDebug || Logger.Debug {
+		Logger.Debug = true
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	} else {
-		// neither enabled → force INFO level (this was missing)
+		// neither enabled -> force INFO level (this was missing)
 		zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	}
 
@@ -239,7 +213,7 @@ func associateExportedVariables() {
 // validatePerformanceConfig checks the [performance] and [performance.chunks]
 // settings for invalid or contradictory values. Every problem is corrected to a
 // safe default and logged as a warning to stderr (the logger is not yet
-// initialised when this runs). The process never exits — a misconfigured tarpit
+// initialised when this runs). The process never exits -- a misconfigured tarpit
 // that falls back to sane defaults is far better than one that refuses to start.
 func validatePerformanceConfig() {
 	const (
@@ -257,81 +231,81 @@ func validatePerformanceConfig() {
 		fmt.Fprintf(os.Stderr, "[INFO] performance config: "+format+"\n", args...)
 	}
 
-	// ── max_total_kbps ───────────────────────────────────────────────────────
-	if MaxTotalKbps > 0 && MaxTotalKbps < minTotalKbps {
-		warn("max_total_kbps (%d) is implausibly low (min %d) — reverting to 2048",
-			MaxTotalKbps, minTotalKbps)
-		MaxTotalKbps = 2048
+	// -- max_total_kbps -------------------------------------------------------
+	if Perf.MaxTotalKbps > 0 && Perf.MaxTotalKbps < minTotalKbps {
+		warn("max_total_kbps (%d) is implausibly low (min %d) -- reverting to 2048",
+			Perf.MaxTotalKbps, minTotalKbps)
+		Perf.MaxTotalKbps = 2048
 	}
 
-	// ── baseline_rate_kbps vs max_total_kbps ─────────────────────────────────
-	if MaxTotalKbps > 0 && BaselineRateKbps > MaxTotalKbps {
-		warn("baseline_rate_kbps (%d) exceeds max_total_kbps (%d) — clamping baseline to max_total",
-			BaselineRateKbps, MaxTotalKbps)
-		BaselineRateKbps = MaxTotalKbps
+	// -- baseline_rate_kbps vs max_total_kbps ---------------------------------
+	if Perf.MaxTotalKbps > 0 && Perf.BaselineRateKbps > Perf.MaxTotalKbps {
+		warn("baseline_rate_kbps (%d) exceeds max_total_kbps (%d) -- clamping baseline to max_total",
+			Perf.BaselineRateKbps, Perf.MaxTotalKbps)
+		Perf.BaselineRateKbps = Perf.MaxTotalKbps
 	}
 
-	// max_workers × baseline informational — total cap will govern
-	if MaxTotalKbps > 0 && BaselineRateKbps > 0 && MaxWorkers > 0 {
-		if projected := MaxWorkers * BaselineRateKbps; projected > MaxTotalKbps {
-			info("max_workers (%d) × baseline_rate_kbps (%d) = %d KB/s exceeds max_total_kbps (%d) — max_total_kbps will be the binding constraint",
-				MaxWorkers, BaselineRateKbps, projected, MaxTotalKbps)
+	// max_workers x baseline informational -- total cap will govern
+	if Perf.MaxTotalKbps > 0 && Perf.BaselineRateKbps > 0 && Perf.MaxWorkers > 0 {
+		if projected := Perf.MaxWorkers * Perf.BaselineRateKbps; projected > Perf.MaxTotalKbps {
+			info("max_workers (%d) x baseline_rate_kbps (%d) = %d KB/s exceeds max_total_kbps (%d) -- max_total_kbps will be the binding constraint",
+				Perf.MaxWorkers, Perf.BaselineRateKbps, projected, Perf.MaxTotalKbps)
 		}
 	}
 
-	// ── chunk pool ───────────────────────────────────────────────────────────
-	if ChunkPoolSizeMB <= 0 {
-		// Pool disabled — skip chunk validation entirely.
+	// -- chunk pool -----------------------------------------------------------
+	if Perf.Chunks.PoolSizeMB <= 0 {
+		// Pool disabled -- skip chunk validation entirely.
 		return
 	}
 
 	// Derive chunk_size_kb if not explicitly set (0 = not set)
-	if ChunkSizeKB <= 0 {
+	if Perf.Chunks.ChunkSizeKB <= 0 {
 		switch {
-		case ChunkPoolSizeMB <= 32:
-			ChunkSizeKB = defaultChunkSizeSmallKB
-		case ChunkPoolSizeMB <= 128:
-			ChunkSizeKB = defaultChunkSizeMediumKB
+		case Perf.Chunks.PoolSizeMB <= 32:
+			Perf.Chunks.ChunkSizeKB = defaultChunkSizeSmallKB
+		case Perf.Chunks.PoolSizeMB <= 128:
+			Perf.Chunks.ChunkSizeKB = defaultChunkSizeMediumKB
 		default:
-			ChunkSizeKB = defaultChunkSizeLargeKB
+			Perf.Chunks.ChunkSizeKB = defaultChunkSizeLargeKB
 		}
 	}
 
 	// chunk larger than the whole pool
-	if ChunkSizeKB*1024 > ChunkPoolSizeMB*1024*1024 {
-		warn("chunk_size_kb (%d KB) exceeds pool_size_mb (%d MB) — reverting chunk_size_kb to %d",
-			ChunkSizeKB, ChunkPoolSizeMB, defaultChunkSizeSmallKB)
-		ChunkSizeKB = defaultChunkSizeSmallKB
+	if Perf.Chunks.ChunkSizeKB*1024 > Perf.Chunks.PoolSizeMB*1024*1024 {
+		warn("chunk_size_kb (%d KB) exceeds pool_size_mb (%d MB) -- reverting chunk_size_kb to %d",
+			Perf.Chunks.ChunkSizeKB, Perf.Chunks.PoolSizeMB, defaultChunkSizeSmallKB)
+		Perf.Chunks.ChunkSizeKB = defaultChunkSizeSmallKB
 	}
 
 	// unreasonably large chunk
-	if ChunkSizeKB > maxChunkSizeKB {
-		warn("chunk_size_kb (%d) exceeds maximum (%d KB) — reverting to %d",
-			ChunkSizeKB, maxChunkSizeKB, defaultChunkSizeSmallKB)
-		ChunkSizeKB = defaultChunkSizeSmallKB
+	if Perf.Chunks.ChunkSizeKB > maxChunkSizeKB {
+		warn("chunk_size_kb (%d) exceeds maximum (%d KB) -- reverting to %d",
+			Perf.Chunks.ChunkSizeKB, maxChunkSizeKB, defaultChunkSizeSmallKB)
+		Perf.Chunks.ChunkSizeKB = defaultChunkSizeSmallKB
 	}
 
 	// Derive refill_rate_kbps if not set
-	if ChunkRefillRateKbps <= 0 {
-		if MaxTotalKbps > 0 {
-			ChunkRefillRateKbps = MaxTotalKbps / 10
+	if Perf.Chunks.RefillRateKbps <= 0 {
+		if Perf.MaxTotalKbps > 0 {
+			Perf.Chunks.RefillRateKbps = Perf.MaxTotalKbps / 10
 		}
-		if ChunkRefillRateKbps < 128 {
-			ChunkRefillRateKbps = 128
+		if Perf.Chunks.RefillRateKbps < 128 {
+			Perf.Chunks.RefillRateKbps = 128
 		}
-		if ChunkRefillRateKbps > 4096 {
-			ChunkRefillRateKbps = 4096
+		if Perf.Chunks.RefillRateKbps > 4096 {
+			Perf.Chunks.RefillRateKbps = 4096
 		}
 	}
 
-	// refill faster than serve rate — wasteful but not harmful
-	if MaxTotalKbps > 0 && ChunkRefillRateKbps > MaxTotalKbps {
-		info("refill_rate_kbps (%d) exceeds max_total_kbps (%d) — refill is faster than serve rate (wasteful but not harmful)",
-			ChunkRefillRateKbps, MaxTotalKbps)
+	// refill faster than serve rate -- wasteful but not harmful
+	if Perf.MaxTotalKbps > 0 && Perf.Chunks.RefillRateKbps > Perf.MaxTotalKbps {
+		info("refill_rate_kbps (%d) exceeds max_total_kbps (%d) -- refill is faster than serve rate (wasteful but not harmful)",
+			Perf.Chunks.RefillRateKbps, Perf.MaxTotalKbps)
 	}
 
-	// unlimited baseline with pool enabled — informational
-	if BaselineRateKbps == 0 {
-		info("baseline_rate_kbps is 0 (unlimited) with chunk pool enabled — connections will serve at full speed; consider setting a baseline rate to protect host resources")
+	// unlimited baseline with pool enabled -- informational
+	if Perf.BaselineRateKbps == 0 {
+		info("baseline_rate_kbps is 0 (unlimited) with chunk pool enabled -- connections will serve at full speed; consider setting a baseline rate to protect host resources")
 	}
 }

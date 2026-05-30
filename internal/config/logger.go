@@ -38,7 +38,7 @@ func prepLogDir() {
 // prepAccessLogDir resolves the access log directory from config.
 // Falls back to the system log directory if not explicitly configured.
 func prepAccessLogDir() {
-	accessLogDir = AccessLogDirectory
+	accessLogDir = Logger.AccessDirectory
 	if accessLogDir == "" {
 		// Default to the system log directory so a minimal config Just Works.
 		prepLogDir()
@@ -89,7 +89,7 @@ func StartLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
 	var logWriter = logFile
 
 	if pretty {
-		logWriter = zerolog.MultiLevelWriter(zerolog.ConsoleWriter{TimeFormat: ConsoleTimeFormat, NoColor: NoColor, Out: os.Stdout}, logFile)
+		logWriter = zerolog.MultiLevelWriter(zerolog.ConsoleWriter{TimeFormat: Logger.ConsoleTimeFormat, NoColor: Logger.NoColor, Out: os.Stdout}, logFile)
 	}
 
 	logger = zerolog.New(logWriter).With().Timestamp().Logger()
@@ -101,7 +101,7 @@ func StartLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
 // The access logger omits the level field — callers use .Log() instead of
 // .Info()/.Debug()/etc. Console output suppresses the level column as well.
 func StartAccessLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
-	prefix := AccessLogPrefix
+	prefix := Logger.AccessPrefix
 	if prefix == "" {
 		prefix = "access"
 	}
@@ -128,8 +128,8 @@ func StartAccessLogger(pretty bool, targets ...io.Writer) zerolog.Logger {
 
 	if pretty {
 		consoleWriter := zerolog.ConsoleWriter{
-			TimeFormat: ConsoleTimeFormat,
-			NoColor:    NoColor,
+			TimeFormat: Logger.ConsoleTimeFormat,
+			NoColor:    Logger.NoColor,
 			Out:        os.Stdout,
 			// Suppress the level column — access log events use .Log() (NoLevel)
 			// and the level field adds no value for connection records.

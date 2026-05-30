@@ -5,55 +5,27 @@ const Title = "HellPot"
 
 var Version = "0.7.0"
 
-var (
-	// BannerOnly when toggled causes HellPot to only print the banner and version then exit.
-	BannerOnly = false
-	// GenConfig when toggled causes HellPot to write its default config to the cwd and then exit.
-	GenConfig = false
-	// NoColor when true will disable the banner and any colored console output.
-	NoColor bool
-	// DockerLogging when true will disable the banner and any colored console output, as well as disable the log file.
-	// Assumes NoColor == true.
-	DockerLogging bool
-	// MakeRobots when false will not respond to requests for robots.txt.
-	MakeRobots bool
-	// CatchAll when true will cause HellPot to respond to all paths.
-	// Note that this will override MakeRobots.
-	CatchAll bool
-	// ConsoleTimeFormat sets the time format for the console. The string is passed to time.Format() down the line.
-	ConsoleTimeFormat string
-)
-
-// "http"
-var (
-	// HTTPBind is defined via our toml configuration file. It is the address that HellPot listens on.
-	HTTPBind string
-	// HTTPPort is defined via our toml configuration file. It is the port that HellPot listens on.
-	HTTPPort string
-	// HeaderName is defined via our toml configuration file. It is the HTTP Header containing the original IP of the client,
-	// in traditional reverse Proxy deployments.
-	HeaderName string
-
-	// Paths are defined via our toml configuration file. These are the paths that HellPot will present for "robots.txt"
-	//       These are also the paths that HellPot will respond for. Other paths will throw a warning and will serve a 404.
-	Paths []string
-
-	// UseUnixSocket determines if we will listen for HTTP connections on a unix socket.
-	UseUnixSocket bool
-
-	// UnixSocketPath is defined via our toml configuration file. It is the path of the socket HellPot listens on
-	// if UseUnixSocket, also defined via our toml configuration file, is set to true.
-	UnixSocketPath        = ""
+// HTTPConfig holds all settings from the [http] TOML section.
+type HTTPConfig struct {
+	BindAddr              string
+	BindPort              string
+	RealIPHeader          string
+	UseUnixSocket         bool
+	UnixSocketPath        string
 	UnixSocketPermissions uint32
+	UABlacklist           []string
+	Router                RouterConfig
+}
 
-	// UseragentBlacklistMatchers contains useragent matches checked for with strings.Contains() that
-	// prevent HellPot from firing off.
-	// See: https://github.com/bdk38/HellPot/issues/23
-	UseragentBlacklistMatchers []string
-)
+// RouterConfig holds settings from the [http.router] TOML section.
+type RouterConfig struct {
+	CatchAll   bool
+	MakeRobots bool
+	Paths      []string
+}
 
-// "performance"
-var (
+// PerformanceConfig holds all settings from the [performance] TOML section.
+type PerformanceConfig struct {
 	// MaxWorkers is the maximum number of concurrent connections HellPot will handle.
 	// Set to 0 to use the fasthttp default (262144). WARNING: setting this to 0 on a
 	// low-resource server can exhaust memory and OOM the process — each trapped connection
@@ -71,40 +43,80 @@ var (
 	// outbound allowance — at full speed HellPot can push 10+ MB/s per connection.
 	MaxTotalKbps int
 
-	// ChunkPoolSizeMB is the total RAM budget for the pre-generated Markov chunk pool,
+	// Chunks holds settings from the [performance.chunks] TOML section.
+	Chunks ChunkConfig
+}
+
+// ChunkConfig holds settings from the [performance.chunks] TOML section.
+type ChunkConfig struct {
+	// PoolSizeMB is the total RAM budget for the pre-generated Markov chunk pool,
 	// in MB. When set, HellPot pre-generates this much Markov text at startup and serves
 	// connections from memory (memcpy) instead of generating on the fly. This dramatically
 	// reduces per-connection CPU cost — recommended for ARM and other constrained hardware.
 	// Set to 0 to disable the pool and use the original on-the-fly generation behavior.
-	// 16MB is comfortable on a router; 64–128MB suits a server.
-	ChunkPoolSizeMB int
+	// 16MB is comfortable on a router; 64-128MB suits a server.
+	PoolSizeMB int
 
 	// ChunkSizeKB is the size of each pre-generated chunk in KB.
-	// Derived automatically from ChunkPoolSizeMB if not set:
-	//   ≤32MB pool  → 64KB chunks
-	//   ≤128MB pool → 128KB chunks
-	//   >128MB pool → 256KB chunks
+	// Derived automatically from PoolSizeMB if not set:
+	//   <=32MB pool  -> 64KB chunks
+	//   <=128MB pool -> 128KB chunks
+	//   >128MB pool  -> 256KB chunks
 	ChunkSizeKB int
 
-	// ChunkRefillRateKbps is the rate at which the background goroutine regenerates
+	// RefillRateKbps is the rate at which the background goroutine regenerates
 	// consumed chunks, in KB/s. Derived as 10% of MaxTotalKbps (floor 128, ceil 4096)
 	// if not set. Lower values use less CPU for background regeneration.
-	ChunkRefillRateKbps int
-)
+	RefillRateKbps int
+}
 
-// "logger" — access log
+// LoggerConfig holds all settings from the [logger] TOML section.
+type LoggerConfig struct {
+	// Debug is the value of our debug (verbose) on/off toggle.
+	Debug bool
+	// Trace is the value of our trace (extra verbose) on/off toggle.
+	Trace bool
+	// NoColor when true will disable the banner and any colored console output.
+	NoColor bool
+	// DockerLogging when true will disable the banner and any colored console output,
+	// as well as disable the log file. Assumes NoColor == true.
+	DockerLogging bool
+	// ConsoleTimeFormat sets the time format for the console output.
+	// The string is passed to time.Format() down the line.
+	ConsoleTimeFormat string
+	// AccessDirectory is the directory for the access log file.
+	// Defaults to the system log directory.
+	AccessDirectory string
+	// AccessPrefix is the filename prefix for the access log. Defaults to "access".
+	AccessPrefix string
+}
+
+// DeceptionConfig holds all settings from the [deception] TOML section.
+type DeceptionConfig struct {
+	// ServerName is the value sent in the "Server:" response header when serving
+	// HTTP clients. Set to a realistic value (e.g. "nginx") to blend in.
+	// An empty string causes fasthttp to omit the header entirely.
+	ServerName string
+}
+
+// HTTP is the resolved HTTP configuration, populated by Init().
+var HTTP HTTPConfig
+
+// Perf is the resolved performance configuration, populated by Init().
+var Perf PerformanceConfig
+
+// Logger is the resolved logger configuration, populated by Init().
+var Logger LoggerConfig
+
+// Deception is the resolved deception configuration, populated by Init().
+var Deception DeceptionConfig
+
 var (
-	// AccessLogDirectory is the directory for the access log (client connection events).
-	// Defaults to the same directory as the system log if empty.
-	AccessLogDirectory string
-
-	// AccessLogPrefix is the filename prefix for the access log.
-	// A datestamp is appended when use_date_filename is true.
-	AccessLogPrefix string
+	// BannerOnly when toggled causes HellPot to only print the banner and version then exit.
+	BannerOnly = false
+	// GenConfig when toggled causes HellPot to write its default config to the cwd and then exit.
+	GenConfig = false
 )
 
-// "deception"
-var (
-	// FakeServerName is our configured value for the "Server: " response header when serving HTTP clients
-	FakeServerName string
-)
+// Filename returns the current location of our toml config file.
+var Filename string

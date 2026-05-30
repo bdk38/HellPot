@@ -28,11 +28,11 @@ func init() {
 		os.Exit(0)
 	}
 
-	switch config.DockerLogging {
+	switch config.Logger.DockerLogging {
 	case true:
 		config.CurrentLogFile = "/dev/stdout"
 		config.CurrentAccessLogFile = "/dev/stdout"
-		config.NoColor = true
+		config.Logger.NoColor = true
 		log = config.StartLogger(false, os.Stdout)
 		config.StartAccessLogger(false, os.Stdout)
 	default:

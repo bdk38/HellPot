@@ -33,7 +33,7 @@ func listenOnUnixSocket(addr string, r *router.Router) error {
 	}
 	if err = os.Chmod(
 		unixAddr.Name,
-		os.FileMode(config.UnixSocketPermissions),
+		os.FileMode(config.HTTP.UnixSocketPermissions),
 	); err != nil {
 		return err
 	}
