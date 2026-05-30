@@ -69,7 +69,7 @@ func colorize(art string) string {
 // Banner prints the HellPot banner with version and URLs
 func Banner() {
 	// Windows and --nocolor mode: simple text output
-	if runtime.GOOS == "windows" || config.NoColor {
+	if runtime.GOOS == "windows" || config.Logger.NoColor {
 		fmt.Fprintf(os.Stdout, "%s %s\n\n", config.Title, config.Version)
 		return
 	}
@@ -87,4 +87,3 @@ func Banner() {
 	fmt.Println("\033[38;5;240m[ \033[38;5;39mgithub.com/bdk38/HellPot\033[38;5;240m ]\033[0m (community fork)")
 	fmt.Println()
 }
-

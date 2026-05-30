@@ -118,30 +118,30 @@ func InitFromConfig() {
 	log = config.GetLogger()
 
 	// Initialise chunk pool if configured.
-	if config.ChunkPoolSizeMB > 0 {
+	if config.Perf.Chunks.PoolSizeMB > 0 {
 		log.Info().
-			Int("pool_mb", config.ChunkPoolSizeMB).
-			Int("chunk_kb", config.ChunkSizeKB).
-			Int("refill_kbps", config.ChunkRefillRateKbps).
+			Int("pool_mb", config.Perf.Chunks.PoolSizeMB).
+			Int("chunk_kb", config.Perf.Chunks.ChunkSizeKB).
+			Int("refill_kbps", config.Perf.Chunks.RefillRateKbps).
 			Msg("Pre-generating Markov chunk pool — this may take a moment on constrained hardware...")
 		GlobalPool = NewChunkPool(
-			config.ChunkPoolSizeMB,
-			config.ChunkSizeKB,
-			config.ChunkRefillRateKbps,
+			config.Perf.Chunks.PoolSizeMB,
+			config.Perf.Chunks.ChunkSizeKB,
+			config.Perf.Chunks.RefillRateKbps,
 			DefaultHeffalump.mm,
 		)
-		chunkCount := (config.ChunkPoolSizeMB * 1024 * 1024) / (config.ChunkSizeKB * 1024)
+		chunkCount := (config.Perf.Chunks.PoolSizeMB * 1024 * 1024) / (config.Perf.Chunks.ChunkSizeKB * 1024)
 		log.Info().
 			Int("chunks", chunkCount).
-			Int("chunk_kb", config.ChunkSizeKB).
+			Int("chunk_kb", config.Perf.Chunks.ChunkSizeKB).
 			Msg("Chunk pool ready")
 	}
 
 	// Initialise global rate limiter if configured.
-	if config.MaxTotalKbps > 0 {
-		initGlobalRateLimiter(config.MaxTotalKbps)
+	if config.Perf.MaxTotalKbps > 0 {
+		initGlobalRateLimiter(config.Perf.MaxTotalKbps)
 		log.Info().
-			Int("max_total_kbps", config.MaxTotalKbps).
+			Int("max_total_kbps", config.Perf.MaxTotalKbps).
 			Msg("Global rate limiter active")
 	}
 }
@@ -193,7 +193,7 @@ func (h *Heffalump) WriteHell(bw *bufio.Writer) (int64, error) {
 		return n, err
 	}
 
-	rateLimited := config.BaselineRateKbps > 0 || globalRateBytes.Load() > 0
+	rateLimited := config.Perf.BaselineRateKbps > 0 || globalRateBytes.Load() > 0
 
 	// When pool is enabled, allocate a copy buffer sized to one chunk and skip
 	// the MarkovReader entirely. When pool is disabled, use the sync.Pool buffers
@@ -217,7 +217,7 @@ func (h *Heffalump) WriteHell(bw *bufio.Writer) (int64, error) {
 	// to maintain BaselineRateKbps KB/s. Uses elapsed-time comparison rather
 	// than a per-connection token bucket to keep allocations minimal.
 	var writeStart time.Time
-	if config.BaselineRateKbps > 0 {
+	if config.Perf.BaselineRateKbps > 0 {
 		writeStart = time.Now()
 	}
 
@@ -270,8 +270,8 @@ func (h *Heffalump) writeSliced(bw *bufio.Writer, data []byte, total *int64, wri
 		sliceLen := int64(end - written)
 
 		// Per-connection rate limiting: sleep if we are ahead of the target rate.
-		if config.BaselineRateKbps > 0 {
-			bytesPerSec := int64(config.BaselineRateKbps) * 1024
+		if config.Perf.BaselineRateKbps > 0 {
+			bytesPerSec := int64(config.Perf.BaselineRateKbps) * 1024
 			expected := time.Duration(float64(time.Second) * float64(*total+int64(written)+sliceLen) / float64(bytesPerSec))
 			if sleep := expected - time.Since(writeStart); sleep > 0 {
 				time.Sleep(sleep)
