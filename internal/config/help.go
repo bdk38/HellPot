@@ -17,6 +17,11 @@ var CLI = help{
 	version: Version,
 	usage: [][]string{
 		{"--config", "</path/to/file>", "Specify config file path"},
+		{"-c", "</path/to/file>", "Alias for --config"},
+		{"--debug", "enable debug logging"},
+		{"-v", "alias for --debug"},
+		{"--trace", "enable trace logging"},
+		{"-vv", "alias for --trace"},
 		{"--nocolor", "disable color and banner"},
 		{"--banner", "show banner + version and exit"},
 		{"--genconfig", "Generate default config.toml in current directory and exit"},

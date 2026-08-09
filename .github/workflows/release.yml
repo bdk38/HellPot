@@ -1,10 +1,20 @@
+# Single canonical release path.
+#
+# How to release:
+#   1. Merge everything intended for the release into main
+#   2. Ensure CHANGELOG.md and internal/config/globals.go Version are updated
+#   3. From main: git tag -a vX.Y.Z -m "HellPot Community vX.Y.Z"
+#   4. git push origin main --tags
+#
+# This workflow builds Linux/macOS binaries and publishes a GitHub Release.
+# Do not use slash-commands or a second release workflow — that caused
+# duplicate assets and branch/tag confusion historically.
 name: Release
 
 on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -14,6 +24,7 @@ jobs:
     name: Build for ${{ matrix.os }}-${{ matrix.arch }}
     runs-on: ${{ matrix.runner }}
     strategy:
+      fail-fast: false
       matrix:
         include:
           - os: linux
@@ -34,14 +45,16 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
       - name: Set up Go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
-          go-version: stable
+          # Keep in sync with go.mod
+          go-version: '1.25.8'
+          cache: true
 
       - name: Build binary
         env:
@@ -50,11 +63,7 @@ jobs:
           CGO_ENABLED: 0
         run: |
           VERSION="${GITHUB_REF#refs/tags/}"
-
           BINARY_NAME="HellPot-Community-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
-          if [ "${{ matrix.os }}" = "windows" ]; then
-            BINARY_NAME="${BINARY_NAME}.exe"
-          fi
 
           go build -trimpath \
             -ldflags "-s -w -X main.version=${VERSION}" \
@@ -65,9 +74,6 @@ jobs:
         run: |
           VERSION="${GITHUB_REF#refs/tags/}"
           BINARY_NAME="HellPot-Community-${VERSION}-${{ matrix.os }}-${{ matrix.arch }}"
-          if [ "${{ matrix.os }}" = "windows" ]; then
-            BINARY_NAME="${BINARY_NAME}.exe"
-          fi
           sha256sum "${BINARY_NAME}" > "${BINARY_NAME}.sha256"
 
       - name: Upload artifacts
@@ -77,14 +83,75 @@ jobs:
           path: |
             HellPot-Community-*
 
+  docker:
+    name: Build and push Docker image
+    runs-on: ubuntu-latest
+    # Only run when Docker Hub credentials are configured.
+    # Missing secrets skip this job instead of failing the whole release.
+    steps:
+      - name: Check Docker Hub secrets
+        id: secrets
+        env:
+          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+          DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+        run: |
+          if [ -n "$DOCKERHUB_USERNAME" ] && [ -n "$DOCKERHUB_TOKEN" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "Docker Hub secrets not set — skipping image publish."
+          fi
+
+      - name: Checkout code
+        if: steps.secrets.outputs.available == 'true'
+        uses: actions/checkout@v7
+
+      - name: Login to Docker Hub
+        if: steps.secrets.outputs.available == 'true'
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up QEMU
+        if: steps.secrets.outputs.available == 'true'
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        if: steps.secrets.outputs.available == 'true'
+        uses: docker/setup-buildx-action@v4
+
+      - name: Docker meta
+        if: steps.secrets.outputs.available == 'true'
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: bdk38/hellpot-community
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=raw,value=latest
+
+      - name: Build and push
+        if: steps.secrets.outputs.available == 'true'
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          platforms: linux/amd64,linux/arm64
+
   release:
-    name: Create Release
+    name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
+    # Only create/update a release for real version tags (not workflow_dispatch noise).
+    if: startsWith(github.ref, 'refs/tags/v')
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -98,7 +165,8 @@ jobs:
           mkdir -p release-assets
           find ./binaries -type f -exec mv {} ./release-assets/ \;
           cd release-assets
-          find . -name 'HellPot-*' ! -name '*.sha256' -exec sha256sum {} \; > checksums.sha256.txt
+          find . -name 'HellPot-Community-*' ! -name '*.sha256' -exec sha256sum {} \; > checksums.sha256.txt
+          ls -la
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
@@ -109,13 +177,19 @@ jobs:
           body: |
             ## HellPot Community ${{ github.ref_name }}
 
-            ### 📦 Downloads
-            Download the appropriate binary for your platform below.
+            ### Downloads
+            Pre-built binaries for Linux and macOS are attached below.
 
-            ### 🔒 Verify Checksums
+            ### Verify checksums
             ```bash
             sha256sum -c checksums.sha256.txt
             ```
 
-            ### 📝 Release Notes
-            See below for detailed changes.
+            ### Docker
+            If Docker Hub publishing is configured for this repository:
+            ```bash
+            docker pull bdk38/hellpot-community:${{ github.ref_name }}
+            ```
+
+            ### Release notes
+            See generated notes below and `CHANGELOG.md` on `main`.

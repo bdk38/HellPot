@@ -15,12 +15,18 @@
 
 ### Grave Consequences
 
-HellPot is an endless HTTP honeypot that sends unruly bots straight to hell. It uses a Markov engine to endlessly feed those that ignore robots.txt get an infinite stream of Nietzsche-themed nonsense while looking *just* real enough to keep them hooked.
+HellPot is an endless HTTP honeypot that sends unruly bots straight to hell.
+It uses a Markov engine to endlessly feed clients that ignore `robots.txt` an
+infinite stream of classic-literature nonsense while looking *just* real enough
+to keep them hooked.
 
 ---
 
-**Latest release:** **[HellPot 0.7.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.0)** <br>
-*pre-built binaries for Linux and macOS
+**Latest release:** **[HellPot 0.7.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.0)**  
+*pre-built binaries for Linux and macOS*
+
+> Note: `main` may be ahead of the latest tag. See [CHANGELOG.md](CHANGELOG.md)
+> `[Unreleased]` and [docs/RELEASING.md](docs/RELEASING.md).
 
 ---
 
@@ -28,68 +34,79 @@ HellPot is an endless HTTP honeypot that sends unruly bots straight to hell. It 
 
 HellPot includes a modern, secure Dockerfile and docker-compose.yml.
 
-```
+```bash
 git clone https://github.com/bdk38/HellPot.git
-```
-```
 cd HellPot
 ```
 
-Create folders + copy default config with correct ownership
-```
+Create folders + copy default config with correct ownership:
+
+```bash
 sudo install -d -m 0755 -o 65532 -g 65532 config logs
-```
-```
 sudo install -m 0644 -o 65532 -g 65532 docker_config.toml ./config/config.toml
 ```
-Customize (Optional)
-```
+
+Customize (optional):
+
+```bash
 sudo nano ./config/config.toml
 ```
-Start
-```
+
+Start and follow logs:
+
+```bash
 docker compose up -d
-```
-Watch live logs — you'll see the redesigned retro ASCII banner!
-```
 docker compose logs -f
 ```
 
 ---
 
-### Quick Start (Binary)
+## Quick Start (Binary)
 
-Download the latest release from [HellPot 0.7.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.0)
+Download the latest release from
+[HellPot 0.7.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.0).
 
-Generate default config:
-```
+```bash
 ./HellPot --genconfig
-```
-Customize (Optional)
-```
-sudo nano ./config/config.toml
-```
-Run:
-```
 ./HellPot --config config.toml
 ```
 
-### Building from Source (Requires Go 1.24+)
+### Building from Source
 
-```
+Requires the Go version in [`go.mod`](go.mod) (currently **Go 1.25.8**).
+
+```bash
 git clone https://github.com/bdk38/HellPot.git
-```
-```
 cd HellPot
-```
-```
 make
 ```
 
 ---
-While these upgrades represent meaningful progress, the fork remains a work in progress and further enhancements are planned. Issues, feature requests, and pull requests are warmly welcomed.
+
+## Maintained dependency forks
+
+Upstream `github.com/mitchellh/reflectwalk` and
+`github.com/mitchellh/copystructure` are archived. This fork pins maintained
+replacements via `replace` in `go.mod`:
+
+- https://github.com/bdk38/reflectwalk
+- https://github.com/bdk38/copystructure
+
+---
+
+## Releasing / contributing
+
+- Release process: [docs/RELEASING.md](docs/RELEASING.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
+
+While these upgrades represent meaningful progress, the fork remains a work in
+progress and further enhancements are planned. Issues, feature requests, and
+pull requests are warmly welcomed.
 
 ## Development Transparency
 
-Some features and fixes in HellPot were developed with the assistance of AI tools.  
-See [AI assistance in Development discussion](https://github.com/bdk38/HellPot/discussions/67) for full details on my process, background, and philosophy around transparency).
+Some features and fixes in HellPot were developed with the assistance of AI
+tools. See
+[AI assistance in Development discussion](https://github.com/bdk38/HellPot/discussions/67)
+for full details on process, background, and philosophy around transparency.

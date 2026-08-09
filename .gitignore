@@ -1,10 +1,26 @@
+# Build artifacts
 /dist
-art
-HellPot
+/HellPot
+/HellPot-Community-*
+*.exe
+
+# Editor / OS
 .idea/
+.vscode/
+.DS_Store
+*.swp
 *.save
+
+# Local runtime / backups
+.backups/
+*.log
+logs/
+
+# Local config copies (keep committed defaults)
 *.toml
 !internal/config/default_config.toml
 !config.toml
-*.yaml
-.backups/
+!docker_config.toml
+
+# Misc local scratch
+art/
