@@ -105,6 +105,8 @@ jobs:
       - name: Checkout code
         if: steps.secrets.outputs.available == 'true'
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Login to Docker Hub
         if: steps.secrets.outputs.available == 'true'
@@ -141,6 +143,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64
+          build-args: |
+            VERSION=${{ github.ref_name }}
 
   release:
     name: Create GitHub Release

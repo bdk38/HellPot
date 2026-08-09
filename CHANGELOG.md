@@ -6,15 +6,22 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-08
+
 ### Changed
-- Repository housecleaning: single canonical release workflow, Dependabot bumps, docs hygiene
+- Repository housecleaning: single canonical release workflow, docs hygiene
 - Config surface refactored from many package-level globals into typed structs
   (`HTTPConfig`, `PerformanceConfig`, `LoggerConfig`, `DeceptionConfig`)
 - Default `config.toml` documents logging and performance knobs more completely
+- Docker build now accepts a `VERSION` build-arg (no reliance on git tags inside the image build)
+- Release workflow optionally publishes multi-arch Docker images when Docker Hub secrets are present
 
 ### Dependencies
 - Bump `github.com/knadh/koanf/*` and `github.com/valyala/fasthttp` (and transitive deps)
 - Bump GitHub Actions `actions/checkout` and `actions/setup-go` to v7
+
+### Fixed
+- Removed overlapping release workflows / slash-command dispatch that caused branch and asset confusion
 
 ## [0.7.0] - 2026-05-29
 

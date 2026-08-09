@@ -22,11 +22,10 @@ to keep them hooked.
 
 ---
 
-**Latest release:** **[HellPot 0.7.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.0)**  
+**Latest release:** **[HellPot 0.7.1-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.1)**  
 *pre-built binaries for Linux and macOS*
 
-> Note: `main` may be ahead of the latest tag. See [CHANGELOG.md](CHANGELOG.md)
-> `[Unreleased]` and [docs/RELEASING.md](docs/RELEASING.md).
+See [CHANGELOG.md](CHANGELOG.md) and [docs/RELEASING.md](docs/RELEASING.md).
 
 ---
 
@@ -64,7 +63,7 @@ docker compose logs -f
 ## Quick Start (Binary)
 
 Download the latest release from
-[HellPot 0.7.0-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.0).
+[HellPot 0.7.1-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.1).
 
 ```bash
 ./HellPot --genconfig

@@ -3,7 +3,7 @@ package config
 // Title is the name of the application used throughout the configuration process.
 const Title = "HellPot"
 
-var Version = "0.7.0"
+var Version = "0.7.1"
 
 var (
 	// BannerOnly when toggled causes HellPot to only print the banner and version then exit.
