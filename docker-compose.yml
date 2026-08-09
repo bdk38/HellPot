@@ -1,20 +1,26 @@
 services:
   hellpot:
     build: .
+    image: bdk38/hellpot-community:local
     container_name: hellpot
     restart: unless-stopped
     ports:
       - "8080:8080"
     volumes:
-      # Bind mounts (recommended — easy to edit config.toml)
-      - ./config:/config
-      - ./logs:/logs
+      # Named volumes need no host prep. On first start Docker seeds them from
+      # the image (/config/config.toml and empty /logs).
+      - hellpot-config:/config
+      - hellpot-logs:/logs
 
-    # Uncomment the lines below if you prefer named volumes instead
-    # volumes:
-    #   - hellpot_config:/config
-    #   - hellpot_logs:/logs
+      # Bind-mount alternative (edit config on the host as a normal file):
+      # 1) mkdir -p config logs
+      # 2) cp docker_config.toml config/config.toml
+      # 3) replace the two lines above with:
+      # - ./config:/config
+      # - ./logs:/logs
+      # If the container can't write logs, fix ownership once:
+      #    sudo chown -R 65532:65532 config logs
 
-# volumes:
-#   hellpot_config:
-#   hellpot_logs:
+volumes:
+  hellpot-config:
+  hellpot-logs:

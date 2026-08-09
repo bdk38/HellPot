@@ -1,4 +1,7 @@
 # HellPot Default Configuration
+#
+# Embedded by --genconfig. Keep in sync with config.toml at the repo root.
+# Docker uses docker_config.toml (same keys, container-specific values).
 
 [logger]
 debug = true

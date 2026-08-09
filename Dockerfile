@@ -26,7 +26,9 @@ RUN CGO_ENABLED=0 \
     -o /app \
     ./cmd/HellPot
 
-# Prepare runtime directories and default config
+# Prepare runtime directories and Docker default config.
+# docker_config.toml is the full config template with container-specific values
+# (0.0.0.0 bind, /logs paths, docker_logging). Keep it synced with config.toml.
 RUN mkdir -p /config /logs && \
     cp docker_config.toml /config/config.toml
 
