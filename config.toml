@@ -1,4 +1,8 @@
 # HellPot Default Configuration
+#
+# Canonical host/binary defaults. Keep in sync with:
+#   - internal/config/default_config.toml  (embedded by --genconfig)
+#   - docker_config.toml                   (Docker image default; Docker-only deltas)
 
 [logger]
 debug = true

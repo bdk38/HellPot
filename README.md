@@ -31,31 +31,55 @@ See [CHANGELOG.md](CHANGELOG.md) and [docs/RELEASING.md](docs/RELEASING.md).
 
 ## Docker
 
-HellPot includes a modern, secure Dockerfile and docker-compose.yml.
+No host config/log directories to create. Compose uses named volumes that are
+seeded from the image on first start.
 
 ```bash
 git clone https://github.com/bdk38/HellPot.git
 cd HellPot
-```
-
-Create folders + copy default config with correct ownership:
-
-```bash
-sudo install -d -m 0755 -o 65532 -g 65532 config logs
-sudo install -m 0644 -o 65532 -g 65532 docker_config.toml ./config/config.toml
-```
-
-Customize (optional):
-
-```bash
-sudo nano ./config/config.toml
-```
-
-Start and follow logs:
-
-```bash
-docker compose up -d
+docker compose up -d --build
 docker compose logs -f
+```
+
+HellPot listens on host port **8080**.
+
+### Edit the running config
+
+```bash
+docker compose cp hellpot:/config/config.toml ./config.toml
+$EDITOR ./config.toml
+docker compose cp ./config.toml hellpot:/config/config.toml
+docker compose restart
+```
+
+### Config files in this repo
+
+| File | Purpose |
+|------|---------|
+| `config.toml` | Host/binary default (same content as the embedded `--genconfig` template) |
+| `internal/config/default_config.toml` | Embedded template used by `--genconfig` |
+| `docker_config.toml` | Image/compose default — full config with Docker-only overrides (`bind_addr = 0.0.0.0`, logs under `/logs`, `docker_logging = true`) |
+
+### Bind-mount config/logs on the host (optional)
+
+If you prefer editing files directly under `./config` and `./logs`:
+
+```bash
+mkdir -p config logs
+cp docker_config.toml config/config.toml
+```
+
+Then in `docker-compose.yml` switch the volume lines to:
+
+```yaml
+- ./config:/config
+- ./logs:/logs
+```
+
+Only if the container cannot write logs (permission denied), fix ownership once:
+
+```bash
+sudo chown -R 65532:65532 config logs
 ```
 
 ---

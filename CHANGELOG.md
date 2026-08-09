@@ -8,6 +8,8 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Changed
 - Bump Go toolchain to 1.26.5 (security patch catch-up from 1.25.8)
+- Resync `docker_config.toml` with full `config.toml` (performance/logging keys were missing)
+- Docker Compose defaults to named volumes (no host `sudo install` setup); simplify README Docker flow
 
 ## [0.7.1] - 2026-08-08
 
