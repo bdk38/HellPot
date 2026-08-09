@@ -1,6 +1,6 @@
 module github.com/bdk38/HellPot
 
-go 1.25.8
+go 1.26.5
 
 replace github.com/mitchellh/reflectwalk => github.com/bdk38/reflectwalk v1.0.4 // archived upstream; maintained fork
 
