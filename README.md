@@ -72,7 +72,7 @@ Download the latest release from
 
 ### Building from Source
 
-Requires the Go version in [`go.mod`](go.mod) (currently **Go 1.25.8**).
+Requires the Go version in [`go.mod`](go.mod) (currently **Go 1.26.5**).
 
 ```bash
 git clone https://github.com/bdk38/HellPot.git

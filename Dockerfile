@@ -1,7 +1,7 @@
 # ==============================================================================
 # Build Stage: Compile the Go source and prepare the filesystem
 # ==============================================================================
-FROM golang:1.25.8 AS build
+FROM golang:1.26.5 AS build
 
 WORKDIR /go/src/app
 

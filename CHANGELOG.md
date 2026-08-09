@@ -6,6 +6,9 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Bump Go toolchain to 1.26.5 (security patch catch-up from 1.25.8)
+
 ## [0.7.1] - 2026-08-08
 
 ### Changed
