@@ -6,6 +6,8 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-08-30
+
 ### Changed
 - Bump Go toolchain to 1.26.5 (security patch catch-up from 1.25.8)
 - Resync `docker_config.toml` with full `config.toml` (performance/logging keys were missing)

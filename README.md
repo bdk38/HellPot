@@ -22,7 +22,7 @@ to keep them hooked.
 
 ---
 
-**Latest release:** **[HellPot 0.7.1-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.1)**  
+**Latest release:** **[HellPot 0.7.2-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.2)**  
 *pre-built binaries for Linux and macOS*
 
 See [CHANGELOG.md](CHANGELOG.md) and [docs/RELEASING.md](docs/RELEASING.md).
@@ -87,7 +87,7 @@ sudo chown -R 65532:65532 config logs
 ## Quick Start (Binary)
 
 Download the latest release from
-[HellPot 0.7.1-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.1).
+[HellPot 0.7.2-Community](https://github.com/bdk38/HellPot/releases/tag/v0.7.2).
 
 ```bash
 ./HellPot --genconfig
