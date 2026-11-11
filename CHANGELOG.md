@@ -6,6 +6,11 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Dependencies
+- Bump `github.com/valyala/fasthttp` 1.73.0 → 1.78.0 (bug fixes and performance; no API changes affecting HellPot)
+- Bump `github.com/knadh/koanf/v2` 2.3.6 → 2.4.1 and `koanf/providers/env/v2` 2.0.1 → 2.0.2
+- Bump indirect deps: `fsnotify` 1.10.1, `go-viper/mapstructure/v2` 2.5.0, `klauspost/compress` 1.20.4, `golang.org/x/sys` 0.50.0
+
 ## [0.7.2] - 2026-08-30
 
 ### Changed
