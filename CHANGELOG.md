@@ -6,6 +6,8 @@ Format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-11-10
+
 ### Dependencies
 - Bump `github.com/valyala/fasthttp` 1.73.0 → 1.78.0 (bug fixes and performance; no API changes affecting HellPot)
 - Bump `github.com/knadh/koanf/v2` 2.3.6 → 2.4.1 and `koanf/providers/env/v2` 2.0.1 → 2.0.2
